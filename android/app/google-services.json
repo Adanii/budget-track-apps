@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "63332747158",
+    "project_id": "tracker-ayfid",
+    "storage_bucket": "tracker-ayfid.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:63332747158:android:4f3310d3add35b5cfdffb7",
+        "android_client_info": {
+          "package_name": "com.ayfid.fintrack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBi-yJWqHNskSh1T1bKytzF6RSJUKmebxU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
