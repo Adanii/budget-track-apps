@@ -19,6 +19,11 @@ final latestBalanceProvider = FutureProvider<int>((ref) {
   return service.getLatestBalance();
 });
 
+final walletBalancesProvider = FutureProvider<Map<String, int>>((ref) {
+  final service = ref.watch(firestoreServiceProvider);
+  return service.getWalletBalances();
+});
+
 class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
   final FirestoreService _service;
   TransactionNotifier(this._service) : super(const AsyncValue.data(null));

@@ -14,10 +14,7 @@ class FinTrackApp extends StatelessWidget {
     final router = GoRouter(
       initialLocation: '/',
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) => const HomeScreen(),
-        ),
+        GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
         GoRoute(
           path: '/add-income',
           builder: (context, state) => const AddIncomeScreen(),
@@ -34,7 +31,7 @@ class FinTrackApp extends StatelessWidget {
     );
 
     return MaterialApp.router(
-      title: 'FinTrack',
+      title: 'BudgetTracker',
       theme: AppTheme.premiumDark,
       routerConfig: router,
       debugShowCheckedModeBanner: false,

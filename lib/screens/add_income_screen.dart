@@ -23,7 +23,7 @@ class _AddIncomeScreenState extends ConsumerState<AddIncomeScreen> {
   final _noteController = TextEditingController();
 
   String _person = 'Afid';
-  String _paymentMethod = 'Cash';
+  String _paymentMethod = AppConstants.wallets.first;
   DateTime _selectedDate = DateTime.now();
 
   @override
@@ -51,6 +51,7 @@ class _AddIncomeScreenState extends ConsumerState<AddIncomeScreen> {
 
     if (mounted) {
       ref.invalidate(latestBalanceProvider);
+      ref.invalidate(walletBalancesProvider);
       context.pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Income saved successfully')),
@@ -155,11 +156,12 @@ class _AddIncomeScreenState extends ConsumerState<AddIncomeScreen> {
               ).animate().fadeIn(delay: 400.ms),
               
               const SizedBox(height: 24),
-              const Text('Payment Method', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+              const Text('Masuk Ke', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
-                children: AppConstants.paymentMethods.map((m) {
+                runSpacing: 12,
+                children: AppConstants.wallets.map((m) {
                   final isSelected = _paymentMethod == m;
                   return ChoiceChip(
                     label: Text(m),

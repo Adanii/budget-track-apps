@@ -13,6 +13,9 @@ import 'package:fin_track/widgets/loading_shimmer.dart';
 import 'package:fin_track/widgets/empty_state.dart';
 import 'package:fin_track/widgets/error_state.dart';
 import 'package:fin_track/widgets/main_layout.dart';
+import 'package:fin_track/widgets/wallet_list_widget.dart';
+import 'package:fin_track/widgets/summary_cards.dart';
+import 'package:fin_track/utils/payment_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -27,6 +30,7 @@ class HomeScreen extends ConsumerWidget {
       transactionsStreamProvider(currentMonth),
     );
     final balanceAsync = ref.watch(latestBalanceProvider);
+    final walletBalancesAsync = ref.watch(walletBalancesProvider);
 
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < AppConstants.mobileBreakpoint;
@@ -40,8 +44,20 @@ class HomeScreen extends ConsumerWidget {
         },
         child: transactionsAsync.when(
           data: (transactions) => isMobile
-              ? _buildMobileView(context, ref, transactions, balanceAsync)
-              : _buildWebView(context, ref, transactions, balanceAsync),
+              ? _buildMobileView(
+                  context,
+                  ref,
+                  transactions,
+                  balanceAsync,
+                  walletBalancesAsync,
+                )
+              : _buildWebView(
+                  context,
+                  ref,
+                  transactions,
+                  balanceAsync,
+                  walletBalancesAsync,
+                ),
           loading: () => const LoadingShimmer(),
           error: (e, _) => ErrorState(
             message: 'Gagal memuat data: $e',
@@ -58,6 +74,7 @@ class HomeScreen extends ConsumerWidget {
     WidgetRef ref,
     List<TransactionModel> transactions,
     AsyncValue<int> balanceAsync,
+    AsyncValue<Map<String, int>> walletBalancesAsync,
   ) {
     return CustomScrollView(
       slivers: [
@@ -75,15 +92,24 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
         ),
+        SliverToBoxAdapter(child: SizedBox(height: 16)),
+        SliverToBoxAdapter(
+          child: walletBalancesAsync.when(
+            data: (balances) => WalletListWidget(balances: balances),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, _) => const SizedBox.shrink(),
+          ),
+        ),
+        SliverToBoxAdapter(child: SizedBox(height: 20)),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: _buildSummaryCards(
-              transactions,
+            child: SummaryCardsWidget(
+              transactions: transactions,
             ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
           ),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        const SliverToBoxAdapter(child: SizedBox(height: 28)),
         if (transactions.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
@@ -126,6 +152,7 @@ class HomeScreen extends ConsumerWidget {
     WidgetRef ref,
     List<TransactionModel> transactions,
     AsyncValue<int> balanceAsync,
+    AsyncValue<Map<String, int>> walletBalancesAsync,
   ) {
     final currencyFormat = NumberFormat.currency(
       locale: 'id_ID',
@@ -141,7 +168,7 @@ class HomeScreen extends ConsumerWidget {
         .fold(0, (sum, t) => sum + t.amount);
 
     Map<String, int> paymentSummary = {};
-    for (var m in AppConstants.paymentMethods) {
+    for (var m in AppConstants.wallets) {
       paymentSummary[m] = transactions
           .where(
             (t) =>
@@ -185,6 +212,7 @@ class HomeScreen extends ConsumerWidget {
                   children: [
                     _buildBalanceSection(
                       balanceAsync,
+                      walletBalancesAsync,
                       income,
                       expense,
                     ).animate().fadeIn(delay: 300.ms).scale(),
@@ -215,6 +243,7 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildBalanceSection(
     AsyncValue<int> balanceAsync,
+    AsyncValue<Map<String, int>> walletBalancesAsync,
     int income,
     int expense,
   ) {
@@ -260,6 +289,12 @@ class HomeScreen extends ConsumerWidget {
               ),
               loading: () => const CircularProgressIndicator(),
               error: (_, _) => const Text('Error loading balance'),
+            ),
+            const SizedBox(height: 24),
+            walletBalancesAsync.when(
+              data: (balances) => WalletListWidget(balances: balances),
+              loading: () => const CircularProgressIndicator(),
+              error: (_, _) => const SizedBox.shrink(),
             ),
             const SizedBox(height: 40),
             Row(
@@ -359,10 +394,12 @@ class HomeScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: _getPaymentColor(e.key).withValues(alpha: 0.1),
+                        color: PaymentUtils.getPaymentColor(
+                          e.key,
+                        ).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: _getPaymentIcon(e.key),
+                      child: PaymentUtils.getPaymentIcon(e.key),
                     ),
                     const SizedBox(width: 16),
                     Text(
@@ -557,75 +594,6 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCards(List<TransactionModel> transactions) {
-    final income = transactions
-        .where((t) => t.transactionType == AppConstants.typeIncome)
-        .fold(0, (sum, t) => sum + t.amount);
-    final expense = transactions
-        .where((t) => t.transactionType == AppConstants.typeExpense)
-        .fold(0, (sum, t) => sum + t.amount);
-
-    return Row(
-      children: [
-        Expanded(
-          child: _SummaryCard(
-            label: 'Income',
-            amount: income,
-            color: AppColors.income,
-            icon: Icons.arrow_downward_rounded,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _SummaryCard(
-            label: 'Expense',
-            amount: expense,
-            color: AppColors.expense,
-            icon: Icons.arrow_upward_rounded,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _getPaymentIcon(String method) {
-    switch (method) {
-      case 'Cash':
-        return const Icon(
-          Icons.payments_rounded,
-          color: AppColors.warning,
-          size: 20,
-        );
-      case 'QR':
-        return const Icon(
-          Icons.qr_code_2_rounded,
-          color: AppColors.info,
-          size: 20,
-        );
-      case 'Debit':
-        return const Icon(
-          Icons.account_balance_rounded,
-          color: Colors.purpleAccent,
-          size: 20,
-        );
-      default:
-        return const Icon(Icons.payment_rounded, size: 20);
-    }
-  }
-
-  Color _getPaymentColor(String method) {
-    switch (method) {
-      case 'Cash':
-        return AppColors.warning;
-      case 'QR':
-        return AppColors.info;
-      case 'Debit':
-        return Colors.purpleAccent;
-      default:
-        return AppColors.textMuted;
-    }
-  }
-
   Future<void> _handleDelete(
     BuildContext context,
     WidgetRef ref,
@@ -658,75 +626,5 @@ class HomeScreen extends ConsumerWidget {
           .deleteTransaction(transaction.id);
       ref.invalidate(latestBalanceProvider);
     }
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final String label;
-  final int amount;
-  final Color color;
-  final IconData icon;
-
-  const _SummaryCard({
-    required this.label,
-    required this.amount,
-    required this.color,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    );
-
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 14, color: color),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              currencyFormat.format(amount),
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

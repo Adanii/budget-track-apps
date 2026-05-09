@@ -22,7 +22,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   String _transactionType = AppConstants.typeExpense;
   String _person = 'Afid';
-  String _paymentMethod = 'Cash';
+  String _paymentMethod = AppConstants.wallets.first;
   DateTime _selectedDate = DateTime.now();
 
   @override
@@ -164,15 +164,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 ],
                 const SizedBox(height: 16),
                 const Text(
-                  'Metode Bayar',
+                  'Sumber Saldo',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: AppConstants.paymentMethods.map((m) {
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: AppConstants.wallets.map((m) {
                     final isSelected = _paymentMethod == m;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8.0),

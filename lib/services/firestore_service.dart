@@ -16,15 +16,29 @@ class FirestoreService {
             .toList());
   }
 
-  Future<int> getLatestBalance() async {
-    final snapshot = await _db
-        .collection(AppConstants.transactionsCollection)
-        .orderBy('created_at', descending: true)
-        .limit(1)
-        .get();
+  Future<Map<String, int>> getWalletBalances() async {
+    final snapshot = await _db.collection(AppConstants.transactionsCollection).get();
+    Map<String, int> balances = {};
+    
+    // Initialize balances to 0 for all known wallets
+    for (var m in AppConstants.wallets) {
+      balances[m] = 0;
+    }
+    
+    for (var doc in snapshot.docs) {
+      final t = TransactionModel.fromFirestore(doc);
+      if (t.transactionType == AppConstants.typeIncome) {
+        balances[t.paymentMethod] = (balances[t.paymentMethod] ?? 0) + t.amount;
+      } else {
+        balances[t.paymentMethod] = (balances[t.paymentMethod] ?? 0) - t.amount;
+      }
+    }
+    return balances;
+  }
 
-    if (snapshot.docs.isEmpty) return 0;
-    return snapshot.docs.first['balance_after'] as int;
+  Future<int> getLatestBalance() async {
+    final balances = await getWalletBalances();
+    return balances.values.fold<int>(0, (sum, balance) => sum + balance);
   }
 
   Future<void> addTransaction(TransactionModel transaction) async {
@@ -36,12 +50,4 @@ class FirestoreService {
   Future<void> deleteTransaction(String id) async {
     await _db.collection(AppConstants.transactionsCollection).doc(id).delete();
   }
-  
-  // Note: Recalculating all balances after a delete is complex in Firestore without Cloud Functions.
-  // For a simple MVP, we might just accept that history balance_after might be inconsistent
-  // or we only allow deleting the latest transaction.
-  // But the requirement says "saldo akan disesuaikan". 
-  // A simple way to handle this in a client-side only app is to calculate the running balance 
-  // by summing all transactions, but that's not efficient.
-  // For now, I'll follow the "latest balance + amount" logic for adding.
 }

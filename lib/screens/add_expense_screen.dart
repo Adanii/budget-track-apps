@@ -20,7 +20,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
   final _noteController = TextEditingController();
 
   String _person = 'Afid';
-  String _paymentMethod = 'Cash';
+  String _paymentMethod = AppConstants.wallets.first;
   DateTime _selectedDate = DateTime.now();
 
   @override
@@ -50,6 +50,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
 
     if (mounted) {
       ref.invalidate(latestBalanceProvider);
+      ref.invalidate(walletBalancesProvider);
       context.pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pengeluaran berhasil disimpan')),
@@ -151,13 +152,14 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
               ],
               const SizedBox(height: 24),
               const Text(
-                'Metode Pembayaran',
+                'Sumber Saldo',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
-                children: AppConstants.paymentMethods.map((m) {
+                runSpacing: 8,
+                children: AppConstants.wallets.map((m) {
                   final isSelected = _paymentMethod == m;
                   return ChoiceChip(
                     label: Text(m),
