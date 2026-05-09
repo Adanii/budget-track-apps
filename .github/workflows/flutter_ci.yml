@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
+permissions:
+  contents: write
+
 jobs:
   test:
     name: Unit Testing
@@ -21,8 +24,6 @@ jobs:
           
       - name: Install dependencies
         run: flutter pub get
-        
-
 
   build_web:
     name: Build & Deploy Web
