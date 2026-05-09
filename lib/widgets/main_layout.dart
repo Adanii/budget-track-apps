@@ -74,57 +74,167 @@ class MainLayout extends StatelessWidget {
   }
 
   Widget _buildSidebar(BuildContext context) {
+    final location = GoRouterState.of(context).uri.path;
+
     return Container(
-      width: 280,
+      width: 260,
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.5),
-        border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+        color: AppColors.surface.withValues(alpha: 0.6),
+        border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       ),
       child: ClipRRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 60),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.4),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    )
-                  ],
-                ),
-                child: const Icon(Icons.account_balance_wallet_rounded, size: 40, color: Colors.white),
-              ).animate().scale(delay: 200.ms, duration: 600.ms, curve: Curves.easeOutBack),
-              const SizedBox(height: 20),
-              Text(
-                AppConstants.appName,
-                style: GoogleFonts.outfit(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 50),
-              _buildMenuItem(context, icon: Icons.grid_view_rounded, label: 'Dashboard', route: '/'),
-              _buildMenuItem(context, icon: Icons.history_rounded, label: 'History', route: '/history'),
-              const Spacer(),
+              // ── Branding ──────────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
+                padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
+                child: Row(
                   children: [
-                    _buildAddButton(context, isIncome: true),
-                    const SizedBox(height: 16),
-                    _buildAddButton(context, isIncome: false),
+                    Container(
+                      width: 42, height: 42,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.account_balance_wallet_rounded, size: 22, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppConstants.appName,
+                          style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        Text(
+                          'Kelola keuangan Anda',
+                          style: GoogleFonts.outfit(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
+              ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.05),
+
+              // ── Section Label ─────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                child: Text(
+                  'MENU',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
               ),
-              const SizedBox(height: 40),
+
+              // ── Nav Items ─────────────────────────────────────────────
+              _buildMenuItem(context, location,
+                  icon: Icons.grid_view_rounded,
+                  label: 'Dashboard',
+                  route: '/'),
+              _buildMenuItem(context, location,
+                  icon: Icons.history_rounded,
+                  label: 'History',
+                  route: '/history'),
+
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                child: Text(
+                  'TRANSAKSI',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+              _buildMenuItem(context, location,
+                  icon: Icons.add_circle_outline_rounded,
+                  label: 'Tambah Pemasukan',
+                  route: '/add-income',
+                  accentColor: AppColors.income),
+              _buildMenuItem(context, location,
+                  icon: Icons.remove_circle_outline_rounded,
+                  label: 'Tambah Pengeluaran',
+                  route: '/add-expense',
+                  accentColor: AppColors.expense),
+
+              const Spacer(),
+
+              // ── Bottom Quick Action ───────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withValues(alpha: 0.15),
+                        AppColors.card,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.tips_and_updates_rounded,
+                                color: AppColors.primary, size: 14),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('Quick Tip', style: GoogleFonts.outfit(
+                            fontSize: 12, fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          )),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Catat setiap transaksi untuk laporan yang akurat.',
+                        style: GoogleFonts.outfit(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
             ],
           ),
         ),
@@ -132,104 +242,180 @@ class MainLayout extends StatelessWidget {
     );
   }
 
+  Widget _buildMenuItem(
+    BuildContext context,
+    String location, {
+    required IconData icon,
+    required String label,
+    required String route,
+    Color? accentColor,
+  }) {
+    final isSelected = location == route;
+    final color = accentColor ?? AppColors.primary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: () => context.go(route),
+          borderRadius: BorderRadius.circular(14),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected ? color.withValues(alpha: 0.12) : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+              border: isSelected
+                  ? Border.all(color: color.withValues(alpha: 0.25))
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? color.withValues(alpha: 0.15)
+                        : Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 16,
+                    color: isSelected ? color : AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  Container(
+                    width: 6, height: 6,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDrawer(BuildContext context) {
+    final location = GoRouterState.of(context).uri.path;
     return Drawer(
       backgroundColor: AppColors.surface,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DrawerHeader(
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppColors.primary.withValues(alpha: 0.2), Colors.transparent],
+                colors: [AppColors.primary.withValues(alpha: 0.15), Colors.transparent],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
             ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.account_balance_wallet_rounded, size: 40, color: AppColors.primary),
-                  const SizedBox(height: 12),
-                  Text(
-                    AppConstants.appName,
-                    style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
+            child: Row(
+              children: [
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
-              ),
+                  child: const Icon(Icons.account_balance_wallet_rounded, size: 20, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(AppConstants.appName, style: GoogleFonts.outfit(
+                      fontSize: 18, fontWeight: FontWeight.bold,
+                    )),
+                    Text('Kelola keuangan Anda', style: GoogleFonts.outfit(
+                      fontSize: 11, color: AppColors.textMuted,
+                    )),
+                  ],
+                ),
+              ],
             ),
           ),
-          _buildDrawerItem(context, Icons.grid_view_rounded, 'Dashboard', '/'),
-          _buildDrawerItem(context, Icons.history_rounded, 'History', '/history'),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Divider(color: Colors.white10),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text('MENU', style: GoogleFonts.outfit(
+              fontSize: 10, color: AppColors.textMuted,
+              fontWeight: FontWeight.bold, letterSpacing: 1.5,
+            )),
           ),
-          _buildDrawerItem(context, Icons.add_circle_outline, 'Income', '/add-income', color: AppColors.income),
-          _buildDrawerItem(context, Icons.remove_circle_outline, 'Expense', '/add-expense', color: AppColors.expense),
+          _buildDrawerItem(context, location, Icons.grid_view_rounded, 'Dashboard', '/'),
+          _buildDrawerItem(context, location, Icons.history_rounded, 'History', '/history'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text('TRANSAKSI', style: GoogleFonts.outfit(
+              fontSize: 10, color: AppColors.textMuted,
+              fontWeight: FontWeight.bold, letterSpacing: 1.5,
+            )),
+          ),
+          _buildDrawerItem(context, location, Icons.add_circle_outline_rounded,
+              'Tambah Pemasukan', '/add-income', color: AppColors.income),
+          _buildDrawerItem(context, location, Icons.remove_circle_outline_rounded,
+              'Tambah Pengeluaran', '/add-expense', color: AppColors.expense),
         ],
       ),
     );
   }
 
-  Widget _buildDrawerItem(BuildContext context, IconData icon, String label, String route, {Color? color}) {
-    return ListTile(
-      leading: Icon(icon, color: color ?? AppColors.textSecondary),
-      title: Text(label, style: TextStyle(color: color ?? AppColors.textPrimary)),
-      onTap: () {
-        Navigator.pop(context);
-        if (route == '/') {
-          context.go(route);
-        } else {
-          context.push(route);
-        }
-      },
-    );
-  }
-
-  Widget _buildMenuItem(BuildContext context, {required IconData icon, required String label, required String route}) {
-    final location = GoRouterState.of(context).uri.path;
+  Widget _buildDrawerItem(
+    BuildContext context,
+    String location,
+    IconData icon,
+    String label,
+    String route, {
+    Color? color,
+  }) {
     final isSelected = location == route;
-
+    final itemColor = color ?? AppColors.primary;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        leading: Icon(icon, color: isSelected ? AppColors.primary : AppColors.textSecondary),
-        title: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        leading: Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? itemColor.withValues(alpha: 0.15)
+                : Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(10),
           ),
+          child: Icon(icon, color: isSelected ? itemColor : AppColors.textSecondary, size: 16),
         ),
-        onTap: () => context.go(route),
+        title: Text(label, style: GoogleFonts.outfit(
+          color: color ?? (isSelected ? AppColors.textPrimary : AppColors.textSecondary),
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          fontSize: 13,
+        )),
         selected: isSelected,
-        selectedTileColor: AppColors.primary.withValues(alpha: 0.1),
-      ),
-    );
-  }
-
-  Widget _buildAddButton(BuildContext context, {required bool isIncome}) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: (isIncome ? AppColors.income : AppColors.expense).withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: () => context.push(isIncome ? '/add-income' : '/add-expense'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isIncome ? AppColors.income : AppColors.expense,
-          minimumSize: const Size.fromHeight(50),
-          elevation: 0,
-        ),
-        child: Text(isIncome ? 'Income' : 'Expense'),
+        selectedTileColor: itemColor.withValues(alpha: 0.08),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        onTap: () {
+          Navigator.pop(context);
+          context.go(route);
+        },
       ),
     );
   }

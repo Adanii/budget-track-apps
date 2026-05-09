@@ -16,7 +16,7 @@ class AppConstants {
   static const String expenseNone = 'none';
 
   // Wallets (Sumber Saldo)
-  static const List<String> wallets = ['Mandiri', 'BCA', 'GoPay', 'SeaBank', 'Cash'];
+  static const List<String> wallets = ['Mandiri', 'BCA', 'GoPay', 'SeaBank', 'Superbank', 'Bank Jago', 'Cash'];
 
   // Threshold for large expense
   static const int largeExpenseThreshold = 200000;

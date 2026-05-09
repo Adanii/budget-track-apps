@@ -38,7 +38,7 @@ class FirestoreService {
 
   Future<int> getLatestBalance() async {
     final balances = await getWalletBalances();
-    return balances.values.fold<int>(0, (sum, balance) => sum + balance);
+    return balances.values.fold<int>(0, (acc, balance) => acc + balance);
   }
 
   Future<void> addTransaction(TransactionModel transaction) async {

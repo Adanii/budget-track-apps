@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fin_track/core/constants.dart';
 import 'package:fin_track/models/transaction_model.dart';
+import 'package:go_router/go_router.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -30,7 +31,7 @@ class HistoryScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildMonthHeader(context, ref, currentMonth),
-          _buildSummaryBar(transactionsAsync, isDesktop),
+          _buildSummaryBar(context, ref, transactionsAsync, isDesktop),
           Expanded(
             child: Container(
               width: double.infinity,
@@ -51,60 +52,53 @@ class HistoryScreen extends ConsumerWidget {
 
   Widget _buildMonthHeader(BuildContext context, WidgetRef ref, String currentMonth) {
     final date = DateFormat('yyyy-MM').parse(currentMonth);
-    final monthName = DateFormat('MMMM').format(date);
-    final yearName = DateFormat('yyyy').format(date);
+    final monthName = DateFormat('MMMM yyyy').format(date);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-      child: InkWell(
-        onTap: () => _showMonthPicker(context, ref, currentMonth),
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Riwayat', style: GoogleFonts.outfit(
+                  fontSize: 28, fontWeight: FontWeight.bold,
+                )),
+                Text('Laporan keuangan bulan ini', style: GoogleFonts.outfit(
+                  fontSize: 13, color: AppColors.textSecondary,
+                )),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => _showMonthPicker(context, ref, currentMonth),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    monthName,
-                    style: GoogleFonts.outfit(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                      height: 1,
-                    ),
-                  ),
-                  Text(
-                    yearName,
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.primary,
-                      letterSpacing: 1,
-                    ),
-                  ),
+                  const Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 16),
+                  const SizedBox(width: 6),
+                  Text(monthName, style: GoogleFonts.outfit(
+                    fontSize: 13, color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  )),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary, size: 18),
                 ],
               ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
-    ).animate().fadeIn().slideX(begin: -0.1);
+    ).animate().fadeIn().slideX(begin: -0.05);
   }
 
   void _showMonthPicker(BuildContext context, WidgetRef ref, String currentMonth) {
@@ -122,93 +116,101 @@ class HistoryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryBar(AsyncValue transactionsAsync, bool isDesktop) {
+  Widget _buildSummaryBar(BuildContext context, WidgetRef ref, AsyncValue transactionsAsync, bool isDesktop) {
     return transactionsAsync.when(
       data: (transactions) {
         final income = transactions
             .where((t) => t.transactionType == 'income')
-            .fold(0, (sum, t) => sum + t.amount);
+            .fold(0, (acc, t) => acc + t.amount);
         final expense = transactions
             .where((t) => t.transactionType == 'expense')
-            .fold(0, (sum, t) => sum + t.amount);
+            .fold(0, (acc, t) => acc + t.amount);
         final currencyFormat = NumberFormat.currency(
-          locale: 'id_ID',
-          symbol: 'Rp ',
-          decimalDigits: 0,
+          locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0,
         );
-
         final net = income - expense;
-        final largestExpense = transactions.where((t) => t.transactionType == 'expense').isEmpty 
-            ? 0 
-            : transactions.where((t) => t.transactionType == 'expense').map((e) => e.amount).reduce((a, b) => a > b ? a : b);
+        final isPositive = net >= 0;
 
-        return Container(
-          margin: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ],
-          ),
-          child: Wrap(
-            spacing: 24,
-            runSpacing: 24,
-            alignment: WrapAlignment.spaceBetween,
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: Column(
             children: [
-              _MiniSummary(
-                label: 'TOTAL INCOME',
-                amount: currencyFormat.format(income),
-                color: AppColors.income,
-                icon: Icons.arrow_upward_rounded,
-              ),
-              if (isDesktop) _buildDivider(),
-              _MiniSummary(
-                label: 'TOTAL EXPENSE',
-                amount: currencyFormat.format(expense),
-                color: AppColors.expense,
-                icon: Icons.arrow_downward_rounded,
-              ),
-              if (isDesktop) _buildDivider(),
-              _MiniSummary(
-                label: 'NET BALANCE',
-                amount: currencyFormat.format(net),
-                color: AppColors.primary,
-                icon: Icons.account_balance_wallet_rounded,
-              ),
-              if (isDesktop && transactions.isNotEmpty) ...[
-                _buildDivider(),
-                _MiniSummary(
-                  label: 'LARGEST EXPENSE',
-                  amount: currencyFormat.format(largestExpense),
-                  color: AppColors.warning,
-                  icon: Icons.trending_up_rounded,
+              // Net balance highlight
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      (isPositive ? AppColors.income : AppColors.expense).withValues(alpha: 0.15),
+                      AppColors.card,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: (isPositive ? AppColors.income : AppColors.expense).withValues(alpha: 0.25),
+                  ),
                 ),
-                _buildDivider(),
-                _MiniSummary(
-                  label: 'TRANSACTIONS',
-                  amount: '${transactions.length}',
-                  color: AppColors.info,
-                  icon: Icons.receipt_long_rounded,
+                child: Row(
+                  children: [
+                    Icon(
+                      isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                      color: isPositive ? AppColors.income : AppColors.expense,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Net Saldo Bulan Ini', style: GoogleFonts.outfit(
+                          fontSize: 12, color: AppColors.textSecondary,
+                        )),
+                        Text(currencyFormat.format(net), style: GoogleFonts.outfit(
+                          fontSize: 22, fontWeight: FontWeight.bold,
+                          color: isPositive ? AppColors.income : AppColors.expense,
+                        )),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
+              // Income / Expense row
+              Row(
+                children: [
+                  Expanded(child: _StatCard(
+                    label: 'Pemasukan',
+                    amount: currencyFormat.format(income),
+                    color: AppColors.income,
+                    icon: Icons.arrow_downward_rounded,
+                    onTap: () {
+                      final month = ref.read(currentMonthProvider);
+                      context.push('/transactions/${AppConstants.typeIncome}/$month');
+                    },
+                  )),
+                  const SizedBox(width: 12),
+                  Expanded(child: _StatCard(
+                    label: 'Pengeluaran',
+                    amount: currencyFormat.format(expense),
+                    color: AppColors.expense,
+                    icon: Icons.arrow_upward_rounded,
+                    onTap: () {
+                      final month = ref.read(currentMonthProvider);
+                      context.push('/transactions/${AppConstants.typeExpense}/$month');
+                    },
+                  )),
+                ],
+              ),
             ],
           ),
-        ).animate().fadeIn().slideY(begin: 0.2);
+        ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.05);
       },
-      loading: () => const SizedBox(height: 100),
-      error: (_, _) => const SizedBox.shrink(),
+      loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+      error: (e, st) => const SizedBox.shrink(),
     );
   }
-
-  Widget _buildDivider() => Container(width: 1, height: 40, color: Colors.white10);
-
   Widget _buildTransactionList(
     AsyncValue transactionsAsync,
     WidgetRef ref,
@@ -489,50 +491,66 @@ class _MonthPickerModalState extends State<_MonthPickerModal> {
   }
 }
 
-class _MiniSummary extends StatelessWidget {
+class _StatCard extends StatelessWidget {
   final String label;
   final String amount;
   final Color color;
   final IconData icon;
+  final VoidCallback? onTap;
 
-  const _MiniSummary({
+  const _StatCard({
     required this.label,
     required this.amount,
     required this.color,
     required this.icon,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 10, color: color),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: GoogleFonts.outfit(
-                fontSize: 10,
-                color: AppColors.textMuted,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          amount,
-          style: GoogleFonts.outfit(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: color,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.15)),
           ),
-        ),
-      ],
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: GoogleFonts.outfit(
+                  fontSize: 11, color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                )),
+                const SizedBox(height: 2),
+                Text(amount, style: GoogleFonts.outfit(
+                  fontSize: 13, fontWeight: FontWeight.bold, color: color,
+                ),
+                overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+      ),
     );
   }
 }

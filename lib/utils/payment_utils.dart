@@ -12,6 +12,10 @@ class PaymentUtils {
         return Icon(Icons.electric_moped_rounded, color: Colors.greenAccent, size: size);
       case 'SeaBank':
         return Icon(Icons.savings_rounded, color: Colors.orangeAccent, size: size);
+      case 'Superbank':
+        return Icon(Icons.rocket_launch_rounded, color: Colors.purpleAccent, size: size);
+      case 'Bank Jago':
+        return Icon(Icons.pets_rounded, color: Colors.tealAccent, size: size);
       case 'Cash':
         return Icon(Icons.payments_rounded, color: AppColors.warning, size: size);
       case 'QR':
@@ -33,6 +37,10 @@ class PaymentUtils {
         return Colors.greenAccent;
       case 'SeaBank':
         return Colors.orangeAccent;
+      case 'Superbank':
+        return Colors.purpleAccent;
+      case 'Bank Jago':
+        return Colors.tealAccent;
       case 'Cash':
         return AppColors.warning;
       case 'QR':

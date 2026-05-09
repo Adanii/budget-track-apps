@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fin_track/core/constants.dart';
 import 'package:fin_track/core/theme.dart';
 import 'package:fin_track/models/transaction_model.dart';
@@ -29,6 +30,7 @@ class SummaryCardsWidget extends StatelessWidget {
             amount: income,
             color: AppColors.income,
             icon: Icons.arrow_downward_rounded,
+            onTap: () => context.push('/transactions/${AppConstants.typeIncome}/${DateFormat('yyyy-MM').format(DateTime.now())}'),
           ),
         ),
         const SizedBox(width: 16),
@@ -38,6 +40,7 @@ class SummaryCardsWidget extends StatelessWidget {
             amount: expense,
             color: AppColors.expense,
             icon: Icons.arrow_upward_rounded,
+            onTap: () => context.push('/transactions/${AppConstants.typeExpense}/${DateFormat('yyyy-MM').format(DateTime.now())}'),
           ),
         ),
       ],
@@ -50,6 +53,7 @@ class SummaryCard extends StatelessWidget {
   final int amount;
   final Color color;
   final IconData icon;
+  final VoidCallback? onTap;
 
   const SummaryCard({
     super.key,
@@ -57,6 +61,7 @@ class SummaryCard extends StatelessWidget {
     required this.amount,
     required this.color,
     required this.icon,
+    this.onTap,
   });
 
   @override
@@ -67,13 +72,18 @@ class SummaryCard extends StatelessWidget {
       decimalDigits: 0,
     );
 
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: AppColors.card,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.1)),
-      ),
+        child: Container(
+          padding: const EdgeInsets.all(20.0),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.1)),
+          ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -111,6 +121,8 @@ class SummaryCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    ),
       ),
     );
   }
