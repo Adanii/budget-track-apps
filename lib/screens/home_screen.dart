@@ -31,6 +31,10 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _selectedDateKey;
   String? _selectedWalletFilter; // null = Semua
+  // Web-only filters: null = Semua
+  String? _webDateFilter;   // null=Semua, 'today'=today's date string, or specific date
+  String? _webWalletFilter;
+  bool _isWebDateInitialized = false;
 
   List<String> _buildOrderedDates(String currentMonth) {
     final today = DateTime.now();
@@ -492,6 +496,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           .fold(0, (acc, t) => acc + t.amount);
     }
 
+    // Build date chips: today first then descending to day 1
+    final currentMonth = ref.read(currentMonthProvider);
+    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final webDates = _buildOrderedDates(currentMonth); // today→day1
+
+    // Init web date filter to today on first load, or reset if month changed
+    if (!_isWebDateInitialized || (_webDateFilter != null && !webDates.contains(_webDateFilter))) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _isWebDateInitialized = true;
+            _webDateFilter = webDates.first;
+          });
+        }
+      });
+    }
+
+    // Apply web filters
+    List<TransactionModel> webFiltered = transactions;
+    if (_webDateFilter != null) {
+      webFiltered = webFiltered
+          .where((t) => DateFormat('yyyy-MM-dd').format(t.date) == _webDateFilter)
+          .toList();
+    }
+    if (_webWalletFilter != null) {
+      webFiltered = webFiltered
+          .where((t) => t.paymentMethod == _webWalletFilter)
+          .toList();
+    }
+
+    // Derive wallet chips from ALL transactions (not just filtered)
+    final usedWalletIds = transactions.map((t) => t.paymentMethod).toSet();
+    final availableWebWallets = dynamicWallets.where((w) => usedWalletIds.contains(w.id)).toList();
+
+    // Auto-reset web wallet filter if not in available
+    if (_webWalletFilter != null && !usedWalletIds.contains(_webWalletFilter)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _webWalletFilter = null);
+      });
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(36.0),
       child: Column(
@@ -511,21 +556,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   )),
                 ],
               ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 16),
-                    const SizedBox(width: 8),
-                    Text(DateFormat('MMMM yyyy').format(DateTime.now()),
-                        style: GoogleFonts.outfit(fontSize: 14, color: AppColors.textSecondary)),
-                  ],
+              const SizedBox(width: 16),
+              // Date chips + wallet chips inline in header
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildWebFilterBar(webDates, todayStr, availableWebWallets),
                 ),
               ),
             ],
@@ -627,12 +663,100 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(width: 24),
               Expanded(
                 flex: 3,
-                child: _buildRecentTransactionsTable(context, ref, transactions, currencyFormat)
+                child: _buildRecentTransactionsTable(context, ref, webFiltered, currencyFormat)
                     .animate().fadeIn(delay: 400.ms).slideX(begin: 0.1),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWebFilterBar(List<String> webDates, String todayStr, List<WalletModel> wallets) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.filter_list_rounded, color: AppColors.primary, size: 16),
+            const SizedBox(width: 12),
+            // Date Filter
+            _buildWebDateChip('Semua', null),
+            const SizedBox(width: 8),
+            ...webDates.map((d) {
+              final label = d == todayStr ? 'Today' : DateFormat('dd MMM').format(DateFormat('yyyy-MM-dd').parse(d));
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _buildWebDateChip(label, d),
+              );
+            }),
+            Container(height: 20, width: 1, color: Colors.white10, margin: const EdgeInsets.symmetric(horizontal: 8)),
+            // Wallet Filter
+            _buildWebWalletChip('Semua', null, Icons.all_inclusive_rounded, AppColors.primary),
+            ...wallets.map((w) => Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: _buildWebWalletChip(w.displayName, w.id, null, PaymentUtils.getPaymentColor(w.bank), wallet: w),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebDateChip(String label, String? value) {
+    final isSelected = _webDateFilter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _webDateFilter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? AppColors.primary : Colors.transparent),
+        ),
+        child: Text(label, style: GoogleFonts.outfit(
+          fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? AppColors.primary : AppColors.textSecondary,
+        )),
+      ),
+    );
+  }
+
+  Widget _buildWebWalletChip(String label, String? value, IconData? icon, Color color, {WalletModel? wallet}) {
+    final isSelected = _webWalletFilter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _webWalletFilter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? color : Colors.transparent),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) Icon(icon, color: isSelected ? color : AppColors.textSecondary, size: 14),
+            if (wallet != null) Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: PaymentUtils.getPaymentIcon(wallet.bank, size: 14),
+            ),
+            Text(label, style: GoogleFonts.outfit(
+              fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? color : AppColors.textSecondary,
+            )),
+          ],
+        ),
       ),
     );
   }

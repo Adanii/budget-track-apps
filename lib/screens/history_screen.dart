@@ -26,6 +26,10 @@ class HistoryScreen extends ConsumerStatefulWidget {
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   String? _selectedDateKey;
   String? _selectedWalletFilter; // null = Semua
+  // Web-only filters: null = Semua
+  String? _webDateFilter;
+  String? _webWalletFilter;
+  bool _isWebDateInitialized = false;
 
   List<String> _buildOrderedDates(String currentMonth) {
     final today = DateTime.now();
@@ -91,19 +95,27 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Riwayat', style: GoogleFonts.outfit(
-                  fontSize: 28, fontWeight: FontWeight.bold,
-                )),
-                Text('Laporan keuangan bulan ini', style: GoogleFonts.outfit(
-                  fontSize: 13, color: AppColors.textSecondary,
-                )),
-              ],
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Riwayat', style: GoogleFonts.outfit(
+                fontSize: 28, fontWeight: FontWeight.bold,
+              )),
+              Text('Laporan keuangan bulan ini', style: GoogleFonts.outfit(
+                fontSize: 13, color: AppColors.textSecondary,
+              )),
+            ],
           ),
+          if (MediaQuery.of(context).size.width > AppConstants.mobileBreakpoint) ...[
+            const SizedBox(width: 16),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: _buildWebFilterBar(ref),
+              ),
+            ),
+          ] else
+            const Spacer(),
           GestureDetector(
             onTap: () => _showMonthPicker(context, ref, currentMonth),
             child: Container(
@@ -251,7 +263,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     List<WalletModel> wallets,
   ) {
     return transactionsAsync.when(
-      data: (allTransactions) {
+      data: (allTransactionsRaw) {
+        final List<TransactionModel> allTransactions = allTransactionsRaw;
+        
         if (allTransactions.isEmpty) {
           return const EmptyState(
             icon: Icons.history_rounded,
@@ -261,7 +275,36 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         }
 
         if (isDesktop) {
-          return _buildTransactionTable(allTransactions, ref, wallets);
+          // Build date chips: today first then descending to day 1
+          final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+          final webDates = _buildOrderedDates(currentMonth);
+
+          // Default selection on first load, or reset if month changed
+          if (!_isWebDateInitialized || (_webDateFilter != null && !webDates.contains(_webDateFilter))) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _isWebDateInitialized = true;
+                  _webDateFilter = webDates.first;
+                });
+              }
+            });
+          }
+          
+          // Apply web filters
+          List<TransactionModel> webFiltered = allTransactions;
+          if (_webDateFilter != null) {
+            webFiltered = webFiltered
+                .where((t) => DateFormat('yyyy-MM-dd').format(t.date) == _webDateFilter)
+                .toList();
+          }
+          if (_webWalletFilter != null) {
+            webFiltered = webFiltered
+                .where((t) => t.paymentMethod == _webWalletFilter)
+                .toList();
+          }
+          return _buildTransactionTable(webFiltered, ref, wallets);
         }
 
         // Build date list for this month
@@ -659,6 +702,105 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       default:
         return _Badge(label: 'General', color: AppColors.textMuted);
     }
+  }
+
+  Widget _buildWebFilterBar(WidgetRef ref) {
+    final currentMonth = ref.watch(currentMonthProvider);
+    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final webDates = _buildOrderedDates(currentMonth);
+    final wallets = ref.watch(walletsStreamProvider).value ?? [];
+    
+    // Derive available wallets from current transactions (all in this month)
+    final transactionsAsync = ref.watch(transactionsStreamProvider(currentMonth));
+    final List<TransactionModel> allTransactions = transactionsAsync.value ?? [];
+    final usedWalletIds = allTransactions.map((t) => t.paymentMethod).toSet();
+    final availableWebWallets = wallets.where((w) => usedWalletIds.contains(w.id)).toList();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.filter_list_rounded, color: AppColors.primary, size: 16),
+            const SizedBox(width: 12),
+            // Date Filter
+            _buildWebDateChip('Semua', null),
+            const SizedBox(width: 8),
+            ...webDates.map((d) {
+              final label = d == todayStr ? 'Today' : DateFormat('dd MMM').format(DateFormat('yyyy-MM-dd').parse(d));
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _buildWebDateChip(label, d),
+              );
+            }),
+            Container(height: 20, width: 1, color: Colors.white10, margin: const EdgeInsets.symmetric(horizontal: 8)),
+            // Wallet Filter
+            _buildWebWalletChip('Semua', null, Icons.all_inclusive_rounded, AppColors.primary),
+            ...availableWebWallets.map((w) => Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: _buildWebWalletChip(w.displayName, w.id, null, PaymentUtils.getPaymentColor(w.bank), wallet: w),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebDateChip(String label, String? value) {
+    final isSelected = _webDateFilter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _webDateFilter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? AppColors.primary : Colors.transparent),
+        ),
+        child: Text(label, style: GoogleFonts.outfit(
+          fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? AppColors.primary : AppColors.textSecondary,
+        )),
+      ),
+    );
+  }
+
+  Widget _buildWebWalletChip(String label, String? value, IconData? icon, Color color, {WalletModel? wallet}) {
+    final isSelected = _webWalletFilter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _webWalletFilter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? color : Colors.transparent),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) Icon(icon, color: isSelected ? color : AppColors.textSecondary, size: 14),
+            if (wallet != null) Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: PaymentUtils.getPaymentIcon(wallet.bank, size: 14),
+            ),
+            Text(label, style: GoogleFonts.outfit(
+              fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? color : AppColors.textSecondary,
+            )),
+          ],
+        ),
+      ),
+    );
   }
 }
 

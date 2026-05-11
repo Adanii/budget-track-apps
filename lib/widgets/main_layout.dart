@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:fin_track/core/theme.dart';
 import 'package:fin_track/core/constants.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:ui';
 
 class MainLayout extends StatelessWidget {
@@ -193,58 +194,134 @@ class MainLayout extends StatelessWidget {
               const Spacer(),
 
               // ── Bottom Quick Action ───────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
+              _buildQuickTip(),
+              const SizedBox(height: 10),
+              // ── Download APK ──────────────────────────────────────────
+              _buildDownloadAPK(),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickTip() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary.withValues(alpha: 0.15),
+              AppColors.card,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primary.withValues(alpha: 0.15),
-                        AppColors.card,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: const Icon(Icons.tips_and_updates_rounded,
+                      color: AppColors.primary, size: 14),
+                ),
+                const SizedBox(width: 8),
+                Text('Quick Tip', style: GoogleFonts.outfit(
+                  fontSize: 12, fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                )),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Catat setiap transaksi untuk laporan yang akurat.',
+              style: GoogleFonts.outfit(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDownloadAPK() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () async {
+            final url = Uri.parse('https://github.com/Adanii/budget-track-apps/releases');
+            if (await canLaunchUrl(url)) {
+              await launchUrl(url, mode: LaunchMode.externalApplication);
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF3DDC84).withValues(alpha: 0.2),
+                  AppColors.card,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF3DDC84).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3DDC84).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.android_rounded,
+                      color: Color(0xFF3DDC84), size: 14),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.tips_and_updates_rounded,
-                                color: AppColors.primary, size: 14),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('Quick Tip', style: GoogleFonts.outfit(
-                            fontSize: 12, fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                      Text('Download APK',
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF3DDC84),
                           )),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Catat setiap transaksi untuk laporan yang akurat.',
-                        style: GoogleFonts.outfit(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                          height: 1.4,
-                        ),
-                      ),
+                      Text('Android build',
+                          style: GoogleFonts.outfit(
+                            fontSize: 10,
+                            color: AppColors.textMuted,
+                          )),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-            ],
+                const Icon(Icons.download_rounded,
+                    color: Color(0xFF3DDC84), size: 16),
+              ],
+            ),
           ),
         ),
       ),
@@ -365,30 +442,41 @@ class MainLayout extends StatelessWidget {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: Text('MENU', style: GoogleFonts.outfit(
-              fontSize: 10, color: AppColors.textMuted,
-              fontWeight: FontWeight.bold, letterSpacing: 1.5,
-            )),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                    child: Text('MENU', style: GoogleFonts.outfit(
+                      fontSize: 10, color: AppColors.textMuted,
+                      fontWeight: FontWeight.bold, letterSpacing: 1.5,
+                    )),
+                  ),
+                  _buildDrawerItem(context, location, Icons.grid_view_rounded, 'Dashboard', '/'),
+                  _buildDrawerItem(context, location, Icons.history_rounded, 'History', '/history'),
+                  _buildDrawerItem(context, location, Icons.account_balance_wallet_rounded,
+                      'Manajemen Wallet', '/wallets'),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                    child: Text('TRANSAKSI', style: GoogleFonts.outfit(
+                      fontSize: 10, color: AppColors.textMuted,
+                      fontWeight: FontWeight.bold, letterSpacing: 1.5,
+                    )),
+                  ),
+                  _buildDrawerItem(context, location, Icons.add_circle_outline_rounded,
+                      'Tambah Pemasukan', '/add-income', color: AppColors.income),
+                  _buildDrawerItem(context, location, Icons.remove_circle_outline_rounded,
+                      'Tambah Pengeluaran', '/add-expense', color: AppColors.expense),
+                  _buildDrawerItem(context, location, Icons.swap_horiz_rounded,
+                      'Transfer Saldo', '/transfer', color: AppColors.primary),
+                ],
+              ),
+            ),
           ),
-          _buildDrawerItem(context, location, Icons.grid_view_rounded, 'Dashboard', '/'),
-          _buildDrawerItem(context, location, Icons.history_rounded, 'History', '/history'),
-          _buildDrawerItem(context, location, Icons.account_balance_wallet_rounded,
-              'Manajemen Wallet', '/wallets'),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: Text('TRANSAKSI', style: GoogleFonts.outfit(
-              fontSize: 10, color: AppColors.textMuted,
-              fontWeight: FontWeight.bold, letterSpacing: 1.5,
-            )),
-          ),
-          _buildDrawerItem(context, location, Icons.add_circle_outline_rounded,
-              'Tambah Pemasukan', '/add-income', color: AppColors.income),
-          _buildDrawerItem(context, location, Icons.remove_circle_outline_rounded,
-              'Tambah Pengeluaran', '/add-expense', color: AppColors.expense),
-          _buildDrawerItem(context, location, Icons.swap_horiz_rounded,
-              'Transfer Saldo', '/transfer', color: AppColors.primary),
+          _buildQuickTip(),
+          _buildDownloadAPK(),
         ],
       ),
     );
