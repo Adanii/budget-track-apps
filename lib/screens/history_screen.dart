@@ -275,9 +275,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         }
 
         if (isDesktop) {
-          // Build date chips: today first then descending to day 1
-          final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
+          // Build date chips: descending to day 1
           final webDates = _buildOrderedDates(currentMonth);
 
           // Default selection on first load, or reset if month changed

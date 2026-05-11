@@ -3,28 +3,51 @@ import 'package:fin_track/core/theme.dart';
 
 class PaymentUtils {
   static Widget getPaymentIcon(String method, {double size = 20}) {
-    switch (method) {
-      case 'Mandiri':
-        return Icon(Icons.account_balance_rounded, color: Colors.amber, size: size);
-      case 'BCA':
-        return Icon(Icons.credit_card_rounded, color: Colors.blueAccent, size: size);
-      case 'GoPay':
-        return Icon(Icons.electric_moped_rounded, color: Colors.greenAccent, size: size);
-      case 'SeaBank':
-        return Icon(Icons.savings_rounded, color: Colors.orangeAccent, size: size);
-      case 'Superbank':
-        return Icon(Icons.rocket_launch_rounded, color: Colors.purpleAccent, size: size);
-      case 'Bank Jago':
-        return Icon(Icons.pets_rounded, color: Colors.tealAccent, size: size);
-      case 'Cash':
-        return Icon(Icons.payments_rounded, color: AppColors.warning, size: size);
-      case 'QR':
-        return Icon(Icons.qr_code_2_rounded, color: AppColors.info, size: size);
-      case 'Debit':
-        return Icon(Icons.account_balance_rounded, color: Colors.purpleAccent, size: size);
-      default:
-        return Icon(Icons.account_balance_wallet_rounded, color: AppColors.textMuted, size: size);
+    final color = getPaymentColor(method);
+
+    // Generic methods use standard icons
+    if (method == 'Cash') {
+      return Icon(Icons.payments_rounded, color: color, size: size);
+    } else if (method == 'QR') {
+      return Icon(Icons.qr_code_2_rounded, color: color, size: size);
+    } else if (method == 'Debit') {
+      return Icon(Icons.credit_card_rounded, color: color, size: size);
     }
+
+    // Banks use custom typography monograms
+    String initial = method.isNotEmpty ? method[0] : '?';
+    if (method == 'BCA') {
+      initial = 'BCA';
+    } else if (method == 'Mandiri') {
+      initial = 'Mandiri';
+    } else if (method == 'GoPay') {
+      initial = 'GoPay';
+    } else if (method == 'SeaBank') {
+      initial = 'SeaBank';
+    } else if (method == 'Bank Jago') {
+      initial = 'Bank\nJago';
+    } else if (method == 'Superbank') {
+      initial = 'Superbank';
+    }
+
+    return Container(
+      constraints: BoxConstraints(minWidth: size),
+      height: size,
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: TextStyle(
+          fontFamily: 'Outfit', // Uses the GoogleFont loaded globally
+          color: color,
+          fontWeight: FontWeight.w900,
+          fontSize: initial.length > 2 ? size * 0.45 : size * 0.8,
+          height: 1.0,
+          letterSpacing: initial.length > 2 ? -0.5 : 0,
+        ),
+        textAlign: TextAlign.center,
+        maxLines: initial.contains('\n') ? 2 : 1,
+      ),
+    );
   }
 
   static Color getPaymentColor(String method) {

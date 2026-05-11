@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String appName = 'Budget Tracker';
+  static const String appName = 'Budget-in';
   static const double maxWebWidth = 1200.0;
   static const double mobileBreakpoint = 600.0;
 

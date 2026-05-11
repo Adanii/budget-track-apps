@@ -8,6 +8,6 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: FinTrackApp()));
 
     // Verify that the app title is present.
-    expect(find.text('BudgetTracker'), findsOneWidget);
+    expect(find.text('Budget-in'), findsOneWidget);
   });
 }

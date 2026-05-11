@@ -5,17 +5,14 @@ import 'package:fin_track/core/theme.dart';
 import 'package:fin_track/core/constants.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:ui';
 
 class MainLayout extends StatelessWidget {
   final Widget child;
   final String title;
 
-  const MainLayout({
-    super.key,
-    required this.child,
-    required this.title,
-  });
+  const MainLayout({super.key, required this.child, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -26,14 +23,19 @@ class MainLayout extends StatelessWidget {
       extendBodyBehindAppBar: true,
       appBar: isMobile
           ? AppBar(
-              title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               centerTitle: false,
               backgroundColor: Colors.transparent,
               elevation: 0,
               flexibleSpace: ClipRRect(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(color: AppColors.background.withValues(alpha: 0.7)),
+                  child: Container(
+                    color: AppColors.background.withValues(alpha: 0.7),
+                  ),
                 ),
               ),
             )
@@ -61,7 +63,9 @@ class MainLayout extends StatelessWidget {
                   top: isMobile,
                   child: Center(
                     child: Container(
-                      constraints: const BoxConstraints(maxWidth: AppConstants.maxWebWidth),
+                      constraints: const BoxConstraints(
+                        maxWidth: AppConstants.maxWebWidth,
+                      ),
                       child: child,
                     ),
                   ),
@@ -81,7 +85,9 @@ class MainLayout extends StatelessWidget {
       width: 260,
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.6),
-        border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+        border: Border(
+          right: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
       ),
       child: ClipRRect(
         child: BackdropFilter(
@@ -95,7 +101,8 @@ class MainLayout extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      width: 42, height: 42,
+                      width: 42,
+                      height: 42,
                       decoration: BoxDecoration(
                         gradient: AppColors.primaryGradient,
                         borderRadius: BorderRadius.circular(12),
@@ -107,7 +114,11 @@ class MainLayout extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.account_balance_wallet_rounded, size: 22, color: Colors.white),
+                      child: const Icon(
+                        Icons.account_balance_wallet_rounded,
+                        size: 22,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -149,18 +160,27 @@ class MainLayout extends StatelessWidget {
               ),
 
               // ── Nav Items ─────────────────────────────────────────────
-              _buildMenuItem(context, location,
-                  icon: Icons.grid_view_rounded,
-                  label: 'Dashboard',
-                  route: '/'),
-              _buildMenuItem(context, location,
-                  icon: Icons.history_rounded,
-                  label: 'History',
-                  route: '/history'),
-              _buildMenuItem(context, location,
-                  icon: Icons.account_balance_wallet_rounded,
-                  label: 'Manajemen Wallet',
-                  route: '/wallets'),
+              _buildMenuItem(
+                context,
+                location,
+                icon: Icons.grid_view_rounded,
+                label: 'Dashboard',
+                route: '/',
+              ),
+              _buildMenuItem(
+                context,
+                location,
+                icon: Icons.history_rounded,
+                label: 'History',
+                route: '/history',
+              ),
+              _buildMenuItem(
+                context,
+                location,
+                icon: Icons.account_balance_wallet_rounded,
+                label: 'Manajemen Wallet',
+                route: '/wallets',
+              ),
 
               const SizedBox(height: 24),
               Padding(
@@ -175,21 +195,30 @@ class MainLayout extends StatelessWidget {
                   ),
                 ),
               ),
-              _buildMenuItem(context, location,
-                  icon: Icons.add_circle_outline_rounded,
-                  label: 'Tambah Pemasukan',
-                  route: '/add-income',
-                  accentColor: AppColors.income),
-              _buildMenuItem(context, location,
-                  icon: Icons.remove_circle_outline_rounded,
-                  label: 'Tambah Pengeluaran',
-                  route: '/add-expense',
-                  accentColor: AppColors.expense),
-              _buildMenuItem(context, location,
-                  icon: Icons.swap_horiz_rounded,
-                  label: 'Transfer Saldo',
-                  route: '/transfer',
-                  accentColor: AppColors.primary),
+              _buildMenuItem(
+                context,
+                location,
+                icon: Icons.add_circle_outline_rounded,
+                label: 'Tambah Pemasukan',
+                route: '/add-income',
+                accentColor: AppColors.income,
+              ),
+              _buildMenuItem(
+                context,
+                location,
+                icon: Icons.remove_circle_outline_rounded,
+                label: 'Tambah Pengeluaran',
+                route: '/add-expense',
+                accentColor: AppColors.expense,
+              ),
+              _buildMenuItem(
+                context,
+                location,
+                icon: Icons.swap_horiz_rounded,
+                label: 'Transfer Saldo',
+                route: '/transfer',
+                accentColor: AppColors.primary,
+              ),
 
               const Spacer(),
 
@@ -198,6 +227,24 @@ class MainLayout extends StatelessWidget {
               const SizedBox(height: 10),
               // ── Download APK ──────────────────────────────────────────
               _buildDownloadAPK(),
+              const SizedBox(height: 4),
+              Center(
+                child: FutureBuilder<PackageInfo>(
+                  future: PackageInfo.fromPlatform(),
+                  builder: (context, snapshot) {
+                    final version = snapshot.hasData
+                        ? snapshot.data!.version
+                        : '1.0.0';
+                    return Text(
+                      'v$version',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10,
+                        color: AppColors.textMuted,
+                      ),
+                    );
+                  },
+                ),
+              ),
               const SizedBox(height: 8),
             ],
           ),
@@ -213,10 +260,7 @@ class MainLayout extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              AppColors.primary.withValues(alpha: 0.15),
-              AppColors.card,
-            ],
+            colors: [AppColors.primary.withValues(alpha: 0.15), AppColors.card],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -234,14 +278,21 @@ class MainLayout extends StatelessWidget {
                     color: AppColors.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.tips_and_updates_rounded,
-                      color: AppColors.primary, size: 14),
+                  child: const Icon(
+                    Icons.tips_and_updates_rounded,
+                    color: AppColors.primary,
+                    size: 14,
+                  ),
                 ),
                 const SizedBox(width: 8),
-                Text('Quick Tip', style: GoogleFonts.outfit(
-                  fontSize: 12, fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                )),
+                Text(
+                  'Quick Tip',
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -268,7 +319,9 @@ class MainLayout extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () async {
-            final url = Uri.parse('https://github.com/Adanii/budget-track-apps/releases');
+            final url = Uri.parse(
+              'https://github.com/Adanii/budget-track-apps/releases',
+            );
             if (await canLaunchUrl(url)) {
               await launchUrl(url, mode: LaunchMode.externalApplication);
             }
@@ -286,7 +339,9 @@ class MainLayout extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF3DDC84).withValues(alpha: 0.3)),
+              border: Border.all(
+                color: const Color(0xFF3DDC84).withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               children: [
@@ -296,30 +351,40 @@ class MainLayout extends StatelessWidget {
                     color: const Color(0xFF3DDC84).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.android_rounded,
-                      color: Color(0xFF3DDC84), size: 14),
+                  child: const Icon(
+                    Icons.android_rounded,
+                    color: Color(0xFF3DDC84),
+                    size: 14,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Download APK',
-                          style: GoogleFonts.outfit(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF3DDC84),
-                          )),
-                      Text('Android build',
-                          style: GoogleFonts.outfit(
-                            fontSize: 10,
-                            color: AppColors.textMuted,
-                          )),
+                      Text(
+                        'Download APK',
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF3DDC84),
+                        ),
+                      ),
+                      Text(
+                        'Android build',
+                        style: GoogleFonts.outfit(
+                          fontSize: 10,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                const Icon(Icons.download_rounded,
-                    color: Color(0xFF3DDC84), size: 16),
+                const Icon(
+                  Icons.download_rounded,
+                  color: Color(0xFF3DDC84),
+                  size: 16,
+                ),
               ],
             ),
           ),
@@ -351,7 +416,9 @@ class MainLayout extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? color.withValues(alpha: 0.12) : Colors.transparent,
+              color: isSelected
+                  ? color.withValues(alpha: 0.12)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(14),
               border: isSelected
                   ? Border.all(color: color.withValues(alpha: 0.25))
@@ -379,14 +446,19 @@ class MainLayout extends StatelessWidget {
                     label,
                     style: GoogleFonts.outfit(
                       fontSize: 13,
-                      color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      color: isSelected
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                   ),
                 ),
                 if (isSelected)
                   Container(
-                    width: 6, height: 6,
+                    width: 6,
+                    height: 6,
                     decoration: BoxDecoration(
                       color: color,
                       shape: BoxShape.circle,
@@ -412,7 +484,10 @@ class MainLayout extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppColors.primary.withValues(alpha: 0.15), Colors.transparent],
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.15),
+                  Colors.transparent,
+                ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -420,23 +495,36 @@ class MainLayout extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 40, height: 40,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     gradient: AppColors.primaryGradient,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.account_balance_wallet_rounded, size: 20, color: Colors.white),
+                  child: const Icon(
+                    Icons.account_balance_wallet_rounded,
+                    size: 20,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(AppConstants.appName, style: GoogleFonts.outfit(
-                      fontSize: 18, fontWeight: FontWeight.bold,
-                    )),
-                    Text('Kelola keuangan Anda', style: GoogleFonts.outfit(
-                      fontSize: 11, color: AppColors.textMuted,
-                    )),
+                    Text(
+                      AppConstants.appName,
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Kelola keuangan Anda',
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -449,34 +537,98 @@ class MainLayout extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                    child: Text('MENU', style: GoogleFonts.outfit(
-                      fontSize: 10, color: AppColors.textMuted,
-                      fontWeight: FontWeight.bold, letterSpacing: 1.5,
-                    )),
+                    child: Text(
+                      'MENU',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10,
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
                   ),
-                  _buildDrawerItem(context, location, Icons.grid_view_rounded, 'Dashboard', '/'),
-                  _buildDrawerItem(context, location, Icons.history_rounded, 'History', '/history'),
-                  _buildDrawerItem(context, location, Icons.account_balance_wallet_rounded,
-                      'Manajemen Wallet', '/wallets'),
+                  _buildDrawerItem(
+                    context,
+                    location,
+                    Icons.grid_view_rounded,
+                    'Dashboard',
+                    '/',
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    location,
+                    Icons.history_rounded,
+                    'History',
+                    '/history',
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    location,
+                    Icons.account_balance_wallet_rounded,
+                    'Manajemen Wallet',
+                    '/wallets',
+                  ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                    child: Text('TRANSAKSI', style: GoogleFonts.outfit(
-                      fontSize: 10, color: AppColors.textMuted,
-                      fontWeight: FontWeight.bold, letterSpacing: 1.5,
-                    )),
+                    child: Text(
+                      'TRANSAKSI',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10,
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
                   ),
-                  _buildDrawerItem(context, location, Icons.add_circle_outline_rounded,
-                      'Tambah Pemasukan', '/add-income', color: AppColors.income),
-                  _buildDrawerItem(context, location, Icons.remove_circle_outline_rounded,
-                      'Tambah Pengeluaran', '/add-expense', color: AppColors.expense),
-                  _buildDrawerItem(context, location, Icons.swap_horiz_rounded,
-                      'Transfer Saldo', '/transfer', color: AppColors.primary),
+                  _buildDrawerItem(
+                    context,
+                    location,
+                    Icons.add_circle_outline_rounded,
+                    'Tambah Pemasukan',
+                    '/add-income',
+                    color: AppColors.income,
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    location,
+                    Icons.remove_circle_outline_rounded,
+                    'Tambah Pengeluaran',
+                    '/add-expense',
+                    color: AppColors.expense,
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    location,
+                    Icons.swap_horiz_rounded,
+                    'Transfer Saldo',
+                    '/transfer',
+                    color: AppColors.primary,
+                  ),
                 ],
               ),
             ),
           ),
           _buildQuickTip(),
           _buildDownloadAPK(),
+          const SizedBox(height: 4),
+          Center(
+            child: FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                final version = snapshot.hasData
+                    ? snapshot.data!.version
+                    : '1.0.0';
+                return Text(
+                  'v$version',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: AppColors.textMuted,
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -503,13 +655,22 @@ class MainLayout extends StatelessWidget {
                 : Colors.white.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: isSelected ? itemColor : AppColors.textSecondary, size: 16),
+          child: Icon(
+            icon,
+            color: isSelected ? itemColor : AppColors.textSecondary,
+            size: 16,
+          ),
         ),
-        title: Text(label, style: GoogleFonts.outfit(
-          color: color ?? (isSelected ? AppColors.textPrimary : AppColors.textSecondary),
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          fontSize: 13,
-        )),
+        title: Text(
+          label,
+          style: GoogleFonts.outfit(
+            color:
+                color ??
+                (isSelected ? AppColors.textPrimary : AppColors.textSecondary),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            fontSize: 13,
+          ),
+        ),
         selected: isSelected,
         selectedTileColor: itemColor.withValues(alpha: 0.08),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

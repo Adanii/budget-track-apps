@@ -8,6 +8,7 @@ import 'package:fin_track/screens/filtered_transactions_screen.dart';
 import 'package:fin_track/screens/transfer_screen.dart';
 import 'package:fin_track/screens/wallet_management_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fin_track/core/constants.dart';
 
 class FinTrackApp extends StatelessWidget {
   const FinTrackApp({super.key});
@@ -50,7 +51,7 @@ class FinTrackApp extends StatelessWidget {
     );
 
     return MaterialApp.router(
-      title: 'BudgetTracker',
+      title: AppConstants.appName,
       theme: AppTheme.premiumDark,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
