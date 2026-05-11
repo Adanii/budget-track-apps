@@ -7,6 +7,7 @@ import 'package:fin_track/core/constants.dart';
 import 'package:fin_track/providers/transaction_provider.dart';
 import 'package:fin_track/utils/payment_utils.dart';
 import 'package:fin_track/utils/currency_formatter.dart';
+import 'package:fin_track/providers/wallet_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
@@ -24,7 +25,7 @@ class _AddIncomeScreenState extends ConsumerState<AddIncomeScreen> {
   final _noteController = TextEditingController();
 
   String _person = 'Afid';
-  String _paymentMethod = AppConstants.wallets.first;
+  String? _paymentMethod;
   DateTime _selectedDate = DateTime.now();
 
   @override
@@ -46,7 +47,7 @@ class _AddIncomeScreenState extends ConsumerState<AddIncomeScreen> {
           amount: amount,
           transactionType: AppConstants.typeIncome,
           expenseType: AppConstants.expenseNone,
-          paymentMethod: _paymentMethod,
+          paymentMethod: _paymentMethod!,
           note: '${_sourceController.text}${_noteController.text.isNotEmpty ? ' - ${_noteController.text}' : ''}',
         );
 
@@ -66,6 +67,20 @@ class _AddIncomeScreenState extends ConsumerState<AddIncomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(transactionActionProvider).isLoading;
+    final walletsAsync = ref.watch(walletsStreamProvider);
+
+    return walletsAsync.when(
+      data: (wallets) {
+        if (wallets.isEmpty) {
+          return const Scaffold(body: Center(child: Text('Loading wallets...')));
+        }
+        
+        // Auto initialize
+        if (_paymentMethod == null && wallets.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _paymentMethod = wallets.first.id);
+          });
+        }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -243,11 +258,11 @@ class _AddIncomeScreenState extends ConsumerState<AddIncomeScreen> {
                     // Wallet Chips
                     Wrap(
                       spacing: 8, runSpacing: 8,
-                      children: AppConstants.wallets.map((m) {
-                        final isSelected = _paymentMethod == m;
-                        final color = PaymentUtils.getPaymentColor(m);
+                      children: wallets.map((w) {
+                        final isSelected = _paymentMethod == w.id;
+                        final color = PaymentUtils.getPaymentColor(w.bank);
                         return GestureDetector(
-                          onTap: () => setState(() => _paymentMethod = m),
+                          onTap: () => setState(() => _paymentMethod = w.id),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -262,9 +277,9 @@ class _AddIncomeScreenState extends ConsumerState<AddIncomeScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                PaymentUtils.getPaymentIcon(m, size: 14),
+                                PaymentUtils.getPaymentIcon(w.bank, size: 14),
                                 const SizedBox(width: 6),
-                                Text(m, style: TextStyle(
+                                Text(w.displayName, style: TextStyle(
                                   color: isSelected ? color : AppColors.textSecondary,
                                   fontSize: 12,
                                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -299,6 +314,10 @@ class _AddIncomeScreenState extends ConsumerState<AddIncomeScreen> {
           ),
         ],
       ),
+    );
+      },
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
     );
   }
 

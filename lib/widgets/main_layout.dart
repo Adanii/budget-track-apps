@@ -156,6 +156,10 @@ class MainLayout extends StatelessWidget {
                   icon: Icons.history_rounded,
                   label: 'History',
                   route: '/history'),
+              _buildMenuItem(context, location,
+                  icon: Icons.account_balance_wallet_rounded,
+                  label: 'Manajemen Wallet',
+                  route: '/wallets'),
 
               const SizedBox(height: 24),
               Padding(
@@ -180,6 +184,11 @@ class MainLayout extends StatelessWidget {
                   label: 'Tambah Pengeluaran',
                   route: '/add-expense',
                   accentColor: AppColors.expense),
+              _buildMenuItem(context, location,
+                  icon: Icons.swap_horiz_rounded,
+                  label: 'Transfer Saldo',
+                  route: '/transfer',
+                  accentColor: AppColors.primary),
 
               const Spacer(),
 
@@ -365,6 +374,8 @@ class MainLayout extends StatelessWidget {
           ),
           _buildDrawerItem(context, location, Icons.grid_view_rounded, 'Dashboard', '/'),
           _buildDrawerItem(context, location, Icons.history_rounded, 'History', '/history'),
+          _buildDrawerItem(context, location, Icons.account_balance_wallet_rounded,
+              'Manajemen Wallet', '/wallets'),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text('TRANSAKSI', style: GoogleFonts.outfit(
@@ -376,6 +387,8 @@ class MainLayout extends StatelessWidget {
               'Tambah Pemasukan', '/add-income', color: AppColors.income),
           _buildDrawerItem(context, location, Icons.remove_circle_outline_rounded,
               'Tambah Pengeluaran', '/add-expense', color: AppColors.expense),
+          _buildDrawerItem(context, location, Icons.swap_horiz_rounded,
+              'Transfer Saldo', '/transfer', color: AppColors.primary),
         ],
       ),
     );

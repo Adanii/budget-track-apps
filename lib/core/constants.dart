@@ -5,18 +5,20 @@ class AppConstants {
 
   // Firestore Collection Names
   static const String transactionsCollection = 'transactions';
+  static const String walletsCollection = 'wallets';
 
   // Transaction Types
   static const String typeIncome = 'income';
   static const String typeExpense = 'expense';
+  static const String typeTransfer = 'transfer';
 
   // Expense Categories
   static const String expenseSmall = 'small_expense';
   static const String expenseLarge = 'large_expense';
   static const String expenseNone = 'none';
 
-  // Wallets (Sumber Saldo)
-  static const List<String> wallets = ['Mandiri', 'BCA', 'GoPay', 'SeaBank', 'Superbank', 'Bank Jago', 'Cash'];
+  // Banks (Dasar sumber saldo untuk ikon/warna)
+  static const List<String> banks = ['Mandiri', 'BCA', 'GoPay', 'SeaBank', 'Superbank', 'Bank Jago', 'Cash', 'Lainnya'];
 
   // Threshold for large expense
   static const int largeExpenseThreshold = 200000;

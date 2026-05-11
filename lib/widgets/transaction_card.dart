@@ -5,7 +5,11 @@ import 'package:fin_track/core/constants.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class TransactionCard extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fin_track/models/wallet_model.dart';
+import 'package:fin_track/providers/wallet_provider.dart';
+
+class TransactionCard extends ConsumerWidget {
   final TransactionModel transaction;
   final VoidCallback onDelete;
   final VoidCallback? onLongPress;
@@ -18,8 +22,15 @@ class TransactionCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wallets = ref.watch(walletsStreamProvider).value ?? [];
+    final wallet = wallets.firstWhere((w) => w.id == transaction.paymentMethod, orElse: () => WalletModel(id: transaction.paymentMethod, bank: transaction.paymentMethod, name: '', createdAt: DateTime.now()));
+    final destinationWallet = transaction.destinationWallet != null 
+        ? wallets.firstWhere((w) => w.id == transaction.destinationWallet, orElse: () => WalletModel(id: transaction.destinationWallet!, bank: transaction.destinationWallet!, name: '', createdAt: DateTime.now()))
+        : null;
+
     final isIncome = transaction.transactionType == AppConstants.typeIncome;
+    final isTransfer = transaction.transactionType == AppConstants.typeTransfer;
     final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
     return Dismissible(
@@ -51,9 +62,9 @@ class TransactionCard extends StatelessWidget {
                     Row(
                       children: [
                         Icon(
-                          isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                          isTransfer ? Icons.swap_horiz_rounded : (isIncome ? Icons.arrow_downward : Icons.arrow_upward),
                           size: 16,
-                          color: isIncome ? AppColors.income : AppColors.expense,
+                          color: isTransfer ? AppColors.primary : (isIncome ? AppColors.income : AppColors.expense),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -93,20 +104,21 @@ class TransactionCard extends StatelessWidget {
                         _getPaymentIcon(transaction.paymentMethod),
                         const SizedBox(width: 6),
                         Text(
-                          transaction.paymentMethod,
+                          isTransfer ? '${wallet.displayName} → ${destinationWallet?.displayName ?? transaction.destinationWallet}' : wallet.displayName,
                           style: GoogleFonts.outfit(
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: AppColors.textMuted,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                     Text(
-                      "${isIncome ? '+' : '-'} ${currencyFormat.format(transaction.amount)}",
+                      '${isTransfer ? '' : (isIncome ? '+' : '-')} ${currencyFormat.format(transaction.amount)}',
                       style: GoogleFonts.outfit(
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: isIncome ? AppColors.income : AppColors.expense,
+                        color: isTransfer ? AppColors.primary : (isIncome ? AppColors.income : AppColors.expense),
                       ),
                     ),
                   ],

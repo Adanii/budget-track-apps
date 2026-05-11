@@ -7,7 +7,8 @@ class TransactionModel {
   final int amount;
   final String transactionType; // income, expense
   final String expenseType; // small_expense, large_expense, none
-  final String paymentMethod;
+  final String paymentMethod; // Source wallet or income target wallet
+  final String? destinationWallet; // Used for transfer target wallet
   final String note;
   final String month; // YYYY-MM
   final int balanceAfter;
@@ -21,6 +22,7 @@ class TransactionModel {
     required this.transactionType,
     required this.expenseType,
     required this.paymentMethod,
+    this.destinationWallet,
     required this.note,
     required this.month,
     required this.balanceAfter,
@@ -37,6 +39,7 @@ class TransactionModel {
       transactionType: data['transaction_type'] ?? '',
       expenseType: data['expense_type'] ?? '',
       paymentMethod: data['payment_method'] ?? '',
+      destinationWallet: data['destination_wallet'],
       note: data['note'] ?? '',
       month: data['month'] ?? '',
       balanceAfter: data['balance_after'] ?? 0,
@@ -52,6 +55,7 @@ class TransactionModel {
       'transaction_type': transactionType,
       'expense_type': expenseType,
       'payment_method': paymentMethod,
+      'destination_wallet': destinationWallet,
       'note': note,
       'month': month,
       'balance_after': balanceAfter,
@@ -67,6 +71,7 @@ class TransactionModel {
     String? transactionType,
     String? expenseType,
     String? paymentMethod,
+    String? destinationWallet,
     String? note,
     String? month,
     int? balanceAfter,
@@ -80,6 +85,7 @@ class TransactionModel {
       transactionType: transactionType ?? this.transactionType,
       expenseType: expenseType ?? this.expenseType,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      destinationWallet: destinationWallet ?? this.destinationWallet,
       note: note ?? this.note,
       month: month ?? this.month,
       balanceAfter: balanceAfter ?? this.balanceAfter,

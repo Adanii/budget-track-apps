@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:fin_track/core/constants.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fin_track/core/theme.dart';
 import 'package:fin_track/utils/payment_utils.dart';
+import 'package:fin_track/providers/wallet_provider.dart';
 
-class WalletListWidget extends StatelessWidget {
+class WalletListWidget extends ConsumerWidget {
   final Map<String, int> balances;
 
   const WalletListWidget({
@@ -15,23 +16,30 @@ class WalletListWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final currencyFormat = NumberFormat.currency(
       locale: 'id_ID',
       symbol: 'Rp ',
       decimalDigits: 0,
     );
+    
+    final walletsAsync = ref.watch(walletsStreamProvider);
 
     return SizedBox(
       height: 100,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: AppConstants.wallets.length,
-        itemBuilder: (context, index) {
-          final wallet = AppConstants.wallets[index];
-          final balance = balances[wallet] ?? 0;
-          final color = PaymentUtils.getPaymentColor(wallet);
+      child: walletsAsync.when(
+        data: (wallets) {
+          if (wallets.isEmpty) {
+            return const Center(child: Text('Belum ada wallet'));
+          }
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: wallets.length,
+            itemBuilder: (context, index) {
+              final wallet = wallets[index];
+              final balance = balances[wallet.id] ?? 0;
+              final color = PaymentUtils.getPaymentColor(wallet.bank);
 
           return Container(
             width: 130,
@@ -54,7 +62,7 @@ class WalletListWidget extends StatelessWidget {
                         color: color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: PaymentUtils.getPaymentIcon(wallet, size: 16),
+                      child: PaymentUtils.getPaymentIcon(wallet.bank, size: 16),
                     ),
                   ],
                 ),
@@ -62,7 +70,7 @@ class WalletListWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      wallet,
+                      wallet.displayName,
                       style: GoogleFonts.outfit(
                         fontSize: 11,
                         color: AppColors.textSecondary,
@@ -86,7 +94,11 @@ class WalletListWidget extends StatelessWidget {
               ],
             ),
           ).animate().fadeIn(delay: (index * 60).ms).slideX(begin: 0.1);
+            },
+          );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, st) => Center(child: Text('Error: $e')),
       ),
     );
   }

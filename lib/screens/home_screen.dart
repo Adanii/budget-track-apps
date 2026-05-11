@@ -10,21 +10,48 @@ import 'package:fin_track/models/transaction_model.dart';
 import 'package:fin_track/widgets/balance_header.dart';
 import 'package:fin_track/widgets/transaction_card.dart';
 import 'package:fin_track/widgets/loading_shimmer.dart';
-import 'package:fin_track/widgets/empty_state.dart';
 import 'package:fin_track/widgets/error_state.dart';
 import 'package:fin_track/widgets/main_layout.dart';
 import 'package:fin_track/widgets/wallet_list_widget.dart';
 import 'package:fin_track/widgets/summary_cards.dart';
 import 'package:fin_track/utils/payment_utils.dart';
+import 'package:fin_track/models/wallet_model.dart';
+import 'package:fin_track/providers/wallet_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  String? _selectedDateKey;
+  String? _selectedWalletFilter; // null = Semua
+
+  List<String> _buildOrderedDates(String currentMonth) {
+    final today = DateTime.now();
+    final todayStr = DateFormat('yyyy-MM-dd').format(today);
+    final parsed = DateFormat('yyyy-MM').parse(currentMonth);
+    final daysInMonth = DateUtils.getDaysInMonth(parsed.year, parsed.month);
+
+    final allDates = List.generate(daysInMonth, (i) {
+      final d = DateTime(parsed.year, parsed.month, i + 1);
+      return DateFormat('yyyy-MM-dd').format(d);
+    });
+
+    // Reorder: today first, then backwards to day 1, then wrap to end of month
+    final todayIndex = allDates.indexOf(todayStr);
+    if (todayIndex == -1) return allDates.reversed.toList();
+    // today → day 1 only (no future dates)
+    return allDates.sublist(0, todayIndex + 1).reversed.toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentMonth = ref.watch(currentMonthProvider);
     final transactionsAsync = ref.watch(
       transactionsStreamProvider(currentMonth),
@@ -50,6 +77,7 @@ class HomeScreen extends ConsumerWidget {
                   transactions,
                   balanceAsync,
                   walletBalancesAsync,
+                  currentMonth,
                 )
               : _buildWebView(
                   context,
@@ -75,7 +103,44 @@ class HomeScreen extends ConsumerWidget {
     List<TransactionModel> transactions,
     AsyncValue<int> balanceAsync,
     AsyncValue<Map<String, int>> walletBalancesAsync,
+    String currentMonth,
   ) {
+    final orderedDates = _buildOrderedDates(currentMonth);
+    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    // Auto-select today (or first date in list) if nothing selected
+    if (_selectedDateKey == null || !orderedDates.contains(_selectedDateKey)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedDateKey = orderedDates.first);
+      });
+    }
+
+    // Group transactions by date
+    final Map<String, List<TransactionModel>> grouped = {};
+    for (final t in transactions) {
+      final key = DateFormat('yyyy-MM-dd').format(t.date);
+      grouped.putIfAbsent(key, () => []).add(t);
+    }
+
+    // Apply date + wallet filter
+    final byDate = grouped[_selectedDateKey] ?? [];
+
+    // Only show chips for wallets that actually appear in this date's transactions
+    final allWallets = ref.watch(walletsStreamProvider).value ?? [];
+    final usedWalletIds = byDate.map((t) => t.paymentMethod).toSet();
+    final availableWallets = allWallets.where((w) => usedWalletIds.contains(w.id)).toList();
+
+    // Auto-reset filter if active wallet has no transactions on this date
+    if (_selectedWalletFilter != null && !usedWalletIds.contains(_selectedWalletFilter)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedWalletFilter = null);
+      });
+    }
+
+    final filteredList = _selectedWalletFilter == null
+        ? byDate
+        : byDate.where((t) => t.paymentMethod == _selectedWalletFilter).toList();
+
     return Stack(
       children: [
         CustomScrollView(
@@ -89,7 +154,7 @@ class HomeScreen extends ConsumerWidget {
                     monthName: DateFormat('MMMM yyyy').format(DateTime.now()),
                   ).animate().fadeIn().slideY(begin: -0.05),
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (_, _) => const Center(child: Text('Error loading balance')),
+                  error: (err, st) => const Center(child: Text('Error loading balance')),
                 ),
               ),
             ),
@@ -98,7 +163,7 @@ class HomeScreen extends ConsumerWidget {
               child: walletBalancesAsync.when(
                 data: (balances) => WalletListWidget(balances: balances),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, _) => const SizedBox.shrink(),
+                error: (err, st) => const SizedBox.shrink(),
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 20)),
@@ -111,53 +176,275 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 28)),
-            if (transactions.isNotEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  child: Row(
-                    children: [
-                      Text('Transaksi Terakhir',
-                          style: GoogleFonts.outfit(
-                            fontSize: 16, fontWeight: FontWeight.bold,
-                          )),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () => context.push('/history'),
-                        child: Text('Lihat Semua',
-                            style: TextStyle(color: AppColors.primary, fontSize: 13)),
-                      ),
-                    ],
-                  ),
+
+            // ── Section Header ──────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: Row(
+                  children: [
+                    Text('Transaksi Terakhir',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16, fontWeight: FontWeight.bold,
+                        )),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => context.push('/history'),
+                      child: Text('Lihat Semua',
+                          style: TextStyle(color: AppColors.primary, fontSize: 13)),
+                    ),
+                  ],
                 ),
               ),
-            if (transactions.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: EmptyState(
-                  icon: Icons.receipt_long_outlined,
-                  title: 'No Transactions',
-                  subtitle: 'Start by recording your first income or expense.',
-                  actionLabel: '+ Record Now',
-                  onAction: () => _showAddTransactionSheet(context),
+            ),
+
+            // ── Date Selector (today first, full month) ─────────────────
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 76,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: orderedDates.length,
+                  itemBuilder: (context, index) {
+                    final dateKey = orderedDates[index];
+                    final isSelected = dateKey == _selectedDateKey;
+                    final isToday = dateKey == todayStr;
+                    final parsed = DateFormat('yyyy-MM-dd').parse(dateKey);
+                    final dayStr = DateFormat('dd').format(parsed);
+                    final monthStr = DateFormat('MMM').format(parsed).toUpperCase();
+                    final hasTransactions = grouped.containsKey(dateKey);
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedDateKey = dateKey),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 54,
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.primary : AppColors.card,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isToday && !isSelected
+                                  ? AppColors.primary.withValues(alpha: 0.5)
+                                  : isSelected
+                                      ? AppColors.primary
+                                      : Colors.white10,
+                              width: isToday && !isSelected ? 1.5 : 1,
+                            ),
+                            boxShadow: isSelected ? [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.35),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ] : [],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                dayStr,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSelected ? Colors.white : AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                monthStr,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: isSelected ? Colors.white70 : AppColors.textSecondary,
+                                ),
+                              ),
+                              if (hasTransactions) ...[  
+                                const SizedBox(height: 4),
+                                Container(
+                                  width: 5, height: 5,
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? Colors.white : AppColors.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+            // ── Wallet Filter Chips ─────────────────────────────────────
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: [
+                    // "Semua" chip
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedWalletFilter = null),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: _selectedWalletFilter == null
+                                ? AppColors.primary
+                                : AppColors.card,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _selectedWalletFilter == null
+                                  ? AppColors.primary
+                                  : Colors.white12,
+                            ),
+                          ),
+                          child: Text(
+                            'Semua',
+                            style: GoogleFonts.outfit(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedWalletFilter == null
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // One chip per wallet
+                    ...availableWallets.map((w) {
+                      final isActive = _selectedWalletFilter == w.id;
+                      final color = PaymentUtils.getPaymentColor(w.bank);
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () => setState(() =>
+                              _selectedWalletFilter = isActive ? null : w.id),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? color.withValues(alpha: 0.2)
+                                  : AppColors.card,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isActive ? color : Colors.white12,
+                                width: isActive ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                PaymentUtils.getPaymentIcon(w.bank, size: 13),
+                                const SizedBox(width: 6),
+                                Text(
+                                  w.displayName,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 12,
+                                    fontWeight: isActive
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: isActive
+                                        ? color
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+            // ── Transactions for selected date ──────────────────────────
+            if (filteredList.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(40),
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.event_note_rounded,
+                            size: 40,
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Tidak ada transaksi',
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Belum ada aktivitas keuangan\npada tanggal ini',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn(),
                 ),
               )
             else
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final transaction = transactions[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: TransactionCard(
-                        transaction: transaction,
-                        onDelete: () => _handleDelete(context, ref, transaction),
-                      ).animate().fadeIn(delay: (index * 50).ms).slideX(begin: 0.05),
-                    );
-                  }, childCount: transactions.length),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final transaction = filteredList[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: TransactionCard(
+                          transaction: transaction,
+                          onDelete: () => _handleDelete(context, ref, transaction),
+                        ).animate().fadeIn(delay: (index * 50).ms).slideX(begin: 0.05),
+                      );
+                    },
+                    childCount: filteredList.length,
+                  ),
                 ),
               ),
+
             const SliverToBoxAdapter(child: SizedBox(height: 120)),
           ],
         ),
@@ -193,14 +480,15 @@ class HomeScreen extends ConsumerWidget {
         .where((t) => t.transactionType == AppConstants.typeExpense)
         .fold(0, (acc, t) => acc + t.amount);
 
+    final dynamicWallets = ref.watch(walletsStreamProvider).value ?? [];
     Map<String, int> walletExpense = {};
     Map<String, int> walletIncome = {};
-    for (var m in AppConstants.wallets) {
-      walletExpense[m] = transactions
-          .where((t) => t.transactionType == AppConstants.typeExpense && t.paymentMethod == m)
+    for (final w in dynamicWallets) {
+      walletExpense[w.id] = transactions
+          .where((t) => t.transactionType == AppConstants.typeExpense && t.paymentMethod == w.id)
           .fold(0, (acc, t) => acc + t.amount);
-      walletIncome[m] = transactions
-          .where((t) => t.transactionType == AppConstants.typeIncome && t.paymentMethod == m)
+      walletIncome[w.id] = transactions
+          .where((t) => t.transactionType == AppConstants.typeIncome && t.paymentMethod == w.id)
           .fold(0, (acc, t) => acc + t.amount);
     }
 
@@ -323,6 +611,7 @@ class HomeScreen extends ConsumerWidget {
                       icon: Icons.pie_chart_outline_rounded,
                       walletData: walletIncome,
                       format: currencyFormat,
+                      ref: ref,
                     ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
                     const SizedBox(height: 24),
                     _buildWalletSummaryTable(
@@ -330,6 +619,7 @@ class HomeScreen extends ConsumerWidget {
                       icon: Icons.pie_chart_outline_rounded,
                       walletData: walletExpense,
                       format: currencyFormat,
+                      ref: ref,
                     ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1),
                   ],
                 ),
@@ -418,7 +708,9 @@ class HomeScreen extends ConsumerWidget {
     required IconData icon,
     required Map<String, int> walletData,
     required NumberFormat format,
+    required WidgetRef ref,
   }) {
+    final walletList = ref.watch(walletsStreamProvider).value ?? [];
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -432,7 +724,11 @@ class HomeScreen extends ConsumerWidget {
           _sectionHeader(title, icon),
           const SizedBox(height: 20),
           ...walletData.entries.map((e) {
-            final color = PaymentUtils.getPaymentColor(e.key);
+            final w = walletList.firstWhere(
+              (wallet) => wallet.id == e.key,
+              orElse: () => WalletModel(id: e.key, bank: e.key, name: '', createdAt: DateTime.now()),
+            );
+            final color = PaymentUtils.getPaymentColor(w.bank);
             final maxValue = walletData.values.isEmpty ? 0 : walletData.values.reduce((a, b) => a > b ? a : b);
             final double progressValue = maxValue == 0 ? 0 : e.value / maxValue;
             return Padding(
@@ -445,14 +741,14 @@ class HomeScreen extends ConsumerWidget {
                       color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: PaymentUtils.getPaymentIcon(e.key, size: 16),
+                    child: PaymentUtils.getPaymentIcon(w.bank, size: 16),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(e.key, style: GoogleFonts.outfit(
+                        Text(w.displayName, style: GoogleFonts.outfit(
                           fontSize: 13, fontWeight: FontWeight.w600,
                         )),
                         const SizedBox(height: 4),

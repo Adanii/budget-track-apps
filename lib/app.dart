@@ -5,6 +5,8 @@ import 'package:fin_track/screens/add_income_screen.dart';
 import 'package:fin_track/screens/add_expense_screen.dart';
 import 'package:fin_track/screens/history_screen.dart';
 import 'package:fin_track/screens/filtered_transactions_screen.dart';
+import 'package:fin_track/screens/transfer_screen.dart';
+import 'package:fin_track/screens/wallet_management_screen.dart';
 import 'package:go_router/go_router.dart';
 
 class FinTrackApp extends StatelessWidget {
@@ -25,8 +27,16 @@ class FinTrackApp extends StatelessWidget {
           builder: (context, state) => const AddExpenseScreen(),
         ),
         GoRoute(
+          path: '/transfer',
+          builder: (context, state) => const TransferScreen(),
+        ),
+        GoRoute(
           path: '/history',
           builder: (context, state) => const HistoryScreen(),
+        ),
+        GoRoute(
+          path: '/wallets',
+          builder: (context, state) => const WalletManagementScreen(),
         ),
         GoRoute(
           path: '/transactions/:type/:month',

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fin_track/core/theme.dart';
 import 'package:fin_track/core/constants.dart';
 import 'package:fin_track/providers/transaction_provider.dart';
+import 'package:fin_track/providers/wallet_provider.dart';
 import 'package:fin_track/widgets/responsive_layout.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -22,7 +23,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   String _transactionType = AppConstants.typeExpense;
   String _person = 'Afid';
-  String _paymentMethod = AppConstants.wallets.first;
+  String? _paymentMethod;
   DateTime _selectedDate = DateTime.now();
 
   @override
@@ -50,7 +51,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           amount: amount,
           transactionType: _transactionType,
           expenseType: expenseType,
-          paymentMethod: _paymentMethod,
+          paymentMethod: _paymentMethod!,
           note: _noteController.text,
         );
 
@@ -66,161 +67,181 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(transactionActionProvider).isLoading;
+    final walletsAsync = ref.watch(walletsStreamProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tambah Transaksi')),
-      body: ResponsiveLayout(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: AppConstants.typeExpense,
-                      label: Text('Pengeluaran'),
-                    ),
-                    ButtonSegment(
-                      value: AppConstants.typeIncome,
-                      label: Text('Pemasukan'),
-                    ),
-                  ],
-                  selected: {_transactionType},
-                  onSelectionChanged: (value) =>
-                      setState(() => _transactionType = value.first),
-                  style: SegmentedButton.styleFrom(
-                    selectedBackgroundColor:
-                        _transactionType == AppConstants.typeExpense
-                        ? AppColors.expense
-                        : AppColors.income,
-                    selectedForegroundColor: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                DropdownButtonFormField<String>(
-                  initialValue: _person,
-                  decoration: const InputDecoration(labelText: 'Person'),
-                  items: ['Afid', 'Ayu']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (value) => setState(() => _person = value!),
-                ),
-                const SizedBox(height: 16),
-                InkWell(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (date != null) setState(() => _selectedDate = date);
-                  },
-                  child: InputDecorator(
-                    decoration: const InputDecoration(labelText: 'Tanggal'),
-                    child: Text(
-                      DateFormat('dd MMMM yyyy').format(_selectedDate),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nominal',
-                    prefixText: 'Rp ',
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) => setState(() {}),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Wajib diisi' : null,
-                ),
-                if (_transactionType == AppConstants.typeExpense &&
-                    _amountController.text.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Builder(
-                    builder: (context) {
-                      final amount =
-                          int.tryParse(
-                            _amountController.text.replaceAll('.', ''),
-                          ) ??
-                          0;
-                      final isLarge =
-                          amount >= AppConstants.largeExpenseThreshold;
-                      return Text(
-                        isLarge
-                            ? '🔴 Pengeluaran Besar'
-                            : '🟢 Pengeluaran Kecil',
-                        style: TextStyle(
-                          color: isLarge ? AppColors.expense : AppColors.income,
-                          fontSize: 12,
+    return walletsAsync.when(
+      data: (wallets) {
+        if (_paymentMethod == null && wallets.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _paymentMethod = wallets.first.id);
+          });
+        }
+
+        return Scaffold(
+          appBar: AppBar(title: const Text('Tambah Transaksi')),
+          body: ResponsiveLayout(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: AppConstants.typeExpense,
+                          label: Text('Pengeluaran'),
                         ),
-                      );
-                    },
-                  ),
-                ],
-                const SizedBox(height: 16),
-                const Text(
-                  'Sumber Saldo',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: AppConstants.wallets.map((m) {
-                    final isSelected = _paymentMethod == m;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ChoiceChip(
-                        label: Text(m),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          if (selected) setState(() => _paymentMethod = m);
-                        },
-                        selectedColor: AppColors.primary,
-                        labelStyle: TextStyle(
-                          color: isSelected
-                              ? Colors.white
-                              : AppColors.textPrimary,
+                        ButtonSegment(
+                          value: AppConstants.typeIncome,
+                          label: Text('Pemasukan'),
+                        ),
+                      ],
+                      selected: {_transactionType},
+                      onSelectionChanged: (value) =>
+                          setState(() => _transactionType = value.first),
+                      style: SegmentedButton.styleFrom(
+                        selectedBackgroundColor:
+                            _transactionType == AppConstants.typeExpense
+                            ? AppColors.expense
+                            : AppColors.income,
+                        selectedForegroundColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    DropdownButtonFormField<String>(
+                      initialValue: _person,
+                      decoration: const InputDecoration(labelText: 'Person'),
+                      items: ['Afid', 'Ayu']
+                          .map(
+                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                          )
+                          .toList(),
+                      onChanged: (value) => setState(() => _person = value!),
+                    ),
+                    const SizedBox(height: 16),
+                    InkWell(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (date != null) setState(() => _selectedDate = date);
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(labelText: 'Tanggal'),
+                        child: Text(
+                          DateFormat('dd MMMM yyyy').format(_selectedDate),
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _noteController,
-                  decoration: const InputDecoration(
-                    labelText: 'Catatan (Opsional)',
-                  ),
-                  maxLength: 100,
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: isLoading ? null : _submit,
-                  child: isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _amountController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nominal',
+                        prefixText: 'Rp ',
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) => setState(() {}),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Wajib diisi' : null,
+                    ),
+                    if (_transactionType == AppConstants.typeExpense &&
+                        _amountController.text.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Builder(
+                        builder: (context) {
+                          final amount =
+                              int.tryParse(
+                                _amountController.text.replaceAll('.', ''),
+                              ) ??
+                              0;
+                          final isLarge =
+                              amount >= AppConstants.largeExpenseThreshold;
+                          return Text(
+                            isLarge
+                                ? '🔴 Pengeluaran Besar'
+                                : '🟢 Pengeluaran Kecil',
+                            style: TextStyle(
+                              color: isLarge
+                                  ? AppColors.expense
+                                  : AppColors.income,
+                              fontSize: 12,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Sumber Saldo',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: wallets.map((w) {
+                        final isSelected = _paymentMethod == w.id;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: Text(w.displayName),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() => _paymentMethod = w.id);
+                              }
+                            },
+                            selectedColor: AppColors.primary,
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
+                            ),
                           ),
-                        )
-                      : const Text('Simpan'),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _noteController,
+                      decoration: const InputDecoration(
+                        labelText: 'Catatan (Opsional)',
+                      ),
+                      maxLength: 100,
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: isLoading ? null : _submit,
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Simpan'),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
     );
   }
 }

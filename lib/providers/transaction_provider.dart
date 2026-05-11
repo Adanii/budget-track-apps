@@ -35,6 +35,7 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
     required String transactionType,
     required String expenseType,
     required String paymentMethod,
+    String? destinationWallet,
     required String note,
   }) async {
     state = const AsyncValue.loading();
@@ -42,7 +43,9 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
       final latestBalance = await _service.getLatestBalance();
       final newBalance = transactionType == 'income' 
           ? latestBalance + amount 
-          : latestBalance - amount;
+          : transactionType == 'expense' 
+              ? latestBalance - amount
+              : latestBalance; // Transfer does not change total balance
 
       final transaction = TransactionModel(
         id: '',
@@ -52,6 +55,7 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
         transactionType: transactionType,
         expenseType: expenseType,
         paymentMethod: paymentMethod,
+        destinationWallet: destinationWallet,
         note: note,
         month: DateFormat('yyyy-MM').format(date),
         balanceAfter: newBalance,
