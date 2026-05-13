@@ -31,6 +31,9 @@ class TransactionCard extends ConsumerWidget {
 
     final isIncome = transaction.transactionType == AppConstants.typeIncome;
     final isTransfer = transaction.transactionType == AppConstants.typeTransfer;
+    final isAdjAdd = transaction.transactionType == AppConstants.typeAdjustmentAdd;
+    final isAdjSub = transaction.transactionType == AppConstants.typeAdjustmentSub;
+    final isAdjustment = isAdjAdd || isAdjSub;
     final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
     return Dismissible(
@@ -62,9 +65,9 @@ class TransactionCard extends ConsumerWidget {
                     Row(
                       children: [
                         Icon(
-                          isTransfer ? Icons.swap_horiz_rounded : (isIncome ? Icons.arrow_downward : Icons.arrow_upward),
+                          isTransfer ? Icons.swap_horiz_rounded : (isAdjustment ? Icons.tune_rounded : (isIncome ? Icons.arrow_downward : Icons.arrow_upward)),
                           size: 16,
-                          color: isTransfer ? AppColors.primary : (isIncome ? AppColors.income : AppColors.expense),
+                          color: isTransfer ? AppColors.primary : (isAdjustment ? Colors.grey : (isIncome ? AppColors.income : AppColors.expense)),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -114,11 +117,11 @@ class TransactionCard extends ConsumerWidget {
                       ],
                     ),
                     Text(
-                      '${isTransfer ? '' : (isIncome ? '+' : '-')} ${currencyFormat.format(transaction.amount)}',
+                      '${(isTransfer || isAdjustment) ? '' : (isIncome ? '+' : '-')}${isAdjAdd ? '+' : (isAdjSub ? '-' : '')} ${currencyFormat.format(transaction.amount)}',
                       style: GoogleFonts.outfit(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: isTransfer ? AppColors.primary : (isIncome ? AppColors.income : AppColors.expense),
+                        color: isTransfer ? AppColors.primary : (isAdjustment ? Colors.grey : (isIncome ? AppColors.income : AppColors.expense)),
                       ),
                     ),
                   ],

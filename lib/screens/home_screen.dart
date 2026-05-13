@@ -153,21 +153,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                 child: balanceAsync.when(
-                  data: (balance) => BalanceHeader(
-                    balance: balance,
-                    monthName: DateFormat('MMMM yyyy').format(DateTime.now()),
-                  ).animate().fadeIn().slideY(begin: -0.05),
+                  data: (balance) => walletBalancesAsync.when(
+                    data: (walletBalances) => BalanceHeader(
+                      balance: balance,
+                      monthName: DateFormat('MMMM yyyy').format(DateTime.now()),
+                      walletBalances: walletBalances,
+                    ).animate().fadeIn().slideY(begin: -0.05),
+                    loading: () => BalanceHeader(
+                      balance: balance,
+                      monthName: DateFormat('MMMM yyyy').format(DateTime.now()),
+                    ).animate().fadeIn().slideY(begin: -0.05),
+                    error: (e, st) => BalanceHeader(
+                      balance: balance,
+                      monthName: DateFormat('MMMM yyyy').format(DateTime.now()),
+                    ),
+                  ),
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (err, st) => const Center(child: Text('Error loading balance')),
                 ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
-            SliverToBoxAdapter(
-              child: walletBalancesAsync.when(
-                data: (balances) => WalletListWidget(balances: balances),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, st) => const SizedBox.shrink(),
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 20)),
@@ -378,6 +381,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+            // Daily summary
+            if (filteredList.isNotEmpty)
+              SliverToBoxAdapter(
+                child: _buildDailySummary(filteredList),
+              ),
 
             // ── Transactions for selected date ──────────────────────────
             if (filteredList.isEmpty)
@@ -663,8 +672,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(width: 24),
               Expanded(
                 flex: 3,
-                child: _buildRecentTransactionsTable(context, ref, webFiltered, currencyFormat)
-                    .animate().fadeIn(delay: 400.ms).slideX(begin: 0.1),
+                child: Column(
+                  children: [
+                    if (_webDateFilter != null && webFiltered.isNotEmpty) 
+                      _buildDailySummary(webFiltered),
+                    _buildRecentTransactionsTable(context, ref, webFiltered, currencyFormat)
+                        .animate().fadeIn(delay: 400.ms).slideX(begin: 0.1),
+                  ],
+                ),
               ),
             ],
           ),
@@ -759,6 +774,84 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildDailySummary(List<TransactionModel> transactions) {
+    final dailyIncome = transactions
+        .where((t) => t.transactionType == AppConstants.typeIncome)
+        .fold(0, (sum, t) => sum + t.amount);
+    final dailyExpense = transactions
+        .where((t) => t.transactionType == AppConstants.typeExpense)
+        .fold(0, (sum, t) => sum + t.amount);
+
+    if (dailyIncome == 0 && dailyExpense == 0) return const SizedBox.shrink();
+
+    final format = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        children: [
+          if (dailyIncome > 0) Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.income.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.income.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.arrow_downward_rounded, color: AppColors.income, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Pemasukan Harian', style: GoogleFonts.outfit(color: AppColors.income.withValues(alpha: 0.8), fontSize: 10)),
+                        Text(format.format(dailyIncome), 
+                          style: GoogleFonts.outfit(color: AppColors.income, fontSize: 14, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (dailyIncome > 0 && dailyExpense > 0) const SizedBox(width: 12),
+          if (dailyExpense > 0) Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.expense.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.expense.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.arrow_upward_rounded, color: AppColors.expense, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Pengeluaran Harian', style: GoogleFonts.outfit(color: AppColors.expense.withValues(alpha: 0.8), fontSize: 10)),
+                        Text(format.format(dailyExpense), 
+                          style: GoogleFonts.outfit(color: AppColors.expense, fontSize: 14, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn().slideY(begin: 0.05);
   }
 
   Widget _buildStatTile({
@@ -1050,6 +1143,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () { context.pop(); context.go('/add-adjustment'); },
+              icon: const Icon(Icons.tune_rounded),
+              label: const Text('Penyesuaian Saldo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey.shade800,
+                minimumSize: const Size.fromHeight(54),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
             ),
           ],
         ),

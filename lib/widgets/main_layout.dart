@@ -149,79 +149,72 @@ class MainLayout extends StatelessWidget {
                 ),
               ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.05),
 
-              // ── Section Label ─────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                child: Text(
-                  'MENU',
-                  style: GoogleFonts.outfit(
-                    fontSize: 10,
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
+              // ── Collapsible Menus ─────────────────────────────────────
+              _CollapsibleSection(
+                title: 'MENU',
+                horizontalPadding: 24,
+                children: [
+                  _buildMenuItem(
+                    context,
+                    location,
+                    icon: Icons.grid_view_rounded,
+                    label: 'Dashboard',
+                    route: '/',
                   ),
-                ),
-              ),
-
-              // ── Nav Items ─────────────────────────────────────────────
-              _buildMenuItem(
-                context,
-                location,
-                icon: Icons.grid_view_rounded,
-                label: 'Dashboard',
-                route: '/',
-              ),
-              _buildMenuItem(
-                context,
-                location,
-                icon: Icons.history_rounded,
-                label: 'History',
-                route: '/history',
-              ),
-              _buildMenuItem(
-                context,
-                location,
-                icon: Icons.account_balance_wallet_rounded,
-                label: 'Manajemen Wallet',
-                route: '/wallets',
-              ),
-
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                child: Text(
-                  'TRANSAKSI',
-                  style: GoogleFonts.outfit(
-                    fontSize: 10,
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
+                  _buildMenuItem(
+                    context,
+                    location,
+                    icon: Icons.history_rounded,
+                    label: 'History',
+                    route: '/history',
                   ),
-                ),
+                  _buildMenuItem(
+                    context,
+                    location,
+                    icon: Icons.account_balance_wallet_rounded,
+                    label: 'Manajemen Wallet',
+                    route: '/wallets',
+                  ),
+                ],
               ),
-              _buildMenuItem(
-                context,
-                location,
-                icon: Icons.add_circle_outline_rounded,
-                label: 'Tambah Pemasukan',
-                route: '/add-income',
-                accentColor: AppColors.income,
-              ),
-              _buildMenuItem(
-                context,
-                location,
-                icon: Icons.remove_circle_outline_rounded,
-                label: 'Tambah Pengeluaran',
-                route: '/add-expense',
-                accentColor: AppColors.expense,
-              ),
-              _buildMenuItem(
-                context,
-                location,
-                icon: Icons.swap_horiz_rounded,
-                label: 'Transfer Saldo',
-                route: '/transfer',
-                accentColor: AppColors.primary,
+              const SizedBox(height: 16),
+              _CollapsibleSection(
+                title: 'TRANSAKSI',
+                horizontalPadding: 24,
+                children: [
+                  _buildMenuItem(
+                    context,
+                    location,
+                    icon: Icons.add_circle_outline_rounded,
+                    label: 'Tambah Pemasukan',
+                    route: '/add-income',
+                    accentColor: AppColors.income,
+                  ),
+                  _buildMenuItem(
+                    context,
+                    location,
+                    icon: Icons.remove_circle_outline_rounded,
+                    label: 'Tambah Pengeluaran',
+                    route: '/add-expense',
+                    accentColor: AppColors.expense,
+                  ),
+                  _buildMenuItem(
+                    context,
+                    location,
+                    icon: Icons.swap_horiz_rounded,
+                    label: 'Transfer Saldo',
+                    route: '/transfer',
+                    accentColor: AppColors.primary,
+                  ),
+                  _buildMenuItem(
+                    context,
+                    location,
+                    icon: Icons.tune_rounded,
+                    label: 'Penyesuaian Saldo',
+                    route: '/add-adjustment',
+                    accentColor: Colors.grey,
+                  ),
+                ],
               ),
 
               const Spacer(),
@@ -543,74 +536,72 @@ class MainLayout extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                    child: Text(
-                      'MENU',
-                      style: GoogleFonts.outfit(
-                        fontSize: 10,
-                        color: AppColors.textMuted,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
+                  const SizedBox(height: 8),
+                  _CollapsibleSection(
+                    title: 'MENU',
+                    horizontalPadding: 16,
+                    children: [
+                      _buildDrawerItem(
+                        context,
+                        location,
+                        Icons.grid_view_rounded,
+                        'Dashboard',
+                        '/',
                       ),
-                    ),
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    location,
-                    Icons.grid_view_rounded,
-                    'Dashboard',
-                    '/',
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    location,
-                    Icons.history_rounded,
-                    'History',
-                    '/history',
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    location,
-                    Icons.account_balance_wallet_rounded,
-                    'Manajemen Wallet',
-                    '/wallets',
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                    child: Text(
-                      'TRANSAKSI',
-                      style: GoogleFonts.outfit(
-                        fontSize: 10,
-                        color: AppColors.textMuted,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
+                      _buildDrawerItem(
+                        context,
+                        location,
+                        Icons.history_rounded,
+                        'History',
+                        '/history',
                       ),
-                    ),
+                      _buildDrawerItem(
+                        context,
+                        location,
+                        Icons.account_balance_wallet_rounded,
+                        'Manajemen Wallet',
+                        '/wallets',
+                      ),
+                    ],
                   ),
-                  _buildDrawerItem(
-                    context,
-                    location,
-                    Icons.add_circle_outline_rounded,
-                    'Tambah Pemasukan',
-                    '/add-income',
-                    color: AppColors.income,
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    location,
-                    Icons.remove_circle_outline_rounded,
-                    'Tambah Pengeluaran',
-                    '/add-expense',
-                    color: AppColors.expense,
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    location,
-                    Icons.swap_horiz_rounded,
-                    'Transfer Saldo',
-                    '/transfer',
-                    color: AppColors.primary,
+                  const SizedBox(height: 8),
+                  _CollapsibleSection(
+                    title: 'TRANSAKSI',
+                    horizontalPadding: 16,
+                    children: [
+                      _buildDrawerItem(
+                        context,
+                        location,
+                        Icons.add_circle_outline_rounded,
+                        'Tambah Pemasukan',
+                        '/add-income',
+                        color: AppColors.income,
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        location,
+                        Icons.remove_circle_outline_rounded,
+                        'Tambah Pengeluaran',
+                        '/add-expense',
+                        color: AppColors.expense,
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        location,
+                        Icons.swap_horiz_rounded,
+                        'Transfer Saldo',
+                        '/transfer',
+                        color: AppColors.primary,
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        location,
+                        Icons.tune_rounded,
+                        'Penyesuaian Saldo',
+                        '/add-adjustment',
+                        color: Colors.grey,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -687,6 +678,80 @@ class MainLayout extends StatelessWidget {
           context.go(route);
         },
       ),
+    );
+  }
+}
+
+class _CollapsibleSection extends StatefulWidget {
+  final String title;
+  final List<Widget> children;
+  final bool initiallyExpanded;
+  final double horizontalPadding;
+
+  const _CollapsibleSection({
+    required this.title,
+    required this.children,
+    this.initiallyExpanded = true,
+    this.horizontalPadding = 24.0,
+  });
+
+  @override
+  State<_CollapsibleSection> createState() => _CollapsibleSectionState();
+}
+
+class _CollapsibleSectionState extends State<_CollapsibleSection> {
+  late bool _isExpanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.initiallyExpanded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              _isExpanded = !_isExpanded;
+            });
+          },
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(widget.horizontalPadding, 8, widget.horizontalPadding, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  widget.title,
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                Icon(
+                  _isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  size: 16,
+                  color: AppColors.textMuted,
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          firstChild: const SizedBox(width: double.infinity),
+          secondChild: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: widget.children,
+          ),
+          crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
+        ),
+      ],
     );
   }
 }

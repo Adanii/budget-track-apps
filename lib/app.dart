@@ -3,6 +3,7 @@ import 'package:fin_track/core/theme.dart';
 import 'package:fin_track/screens/home_screen.dart';
 import 'package:fin_track/screens/add_income_screen.dart';
 import 'package:fin_track/screens/add_expense_screen.dart';
+import 'package:fin_track/screens/add_adjustment_screen.dart';
 import 'package:fin_track/screens/history_screen.dart';
 import 'package:fin_track/screens/filtered_transactions_screen.dart';
 import 'package:fin_track/screens/transfer_screen.dart';
@@ -26,6 +27,10 @@ class FinTrackApp extends StatelessWidget {
         GoRoute(
           path: '/add-expense',
           builder: (context, state) => const AddExpenseScreen(),
+        ),
+        GoRoute(
+          path: '/add-adjustment',
+          builder: (context, state) => const AddAdjustmentScreen(),
         ),
         GoRoute(
           path: '/transfer',

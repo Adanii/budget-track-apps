@@ -79,6 +79,10 @@ class FirestoreService {
         if (t.destinationWallet != null) {
           balances[t.destinationWallet!] = (balances[t.destinationWallet!] ?? 0) + t.amount;
         }
+      } else if (t.transactionType == AppConstants.typeAdjustmentAdd) {
+        balances[t.paymentMethod] = (balances[t.paymentMethod] ?? 0) + t.amount;
+      } else if (t.transactionType == AppConstants.typeAdjustmentSub) {
+        balances[t.paymentMethod] = (balances[t.paymentMethod] ?? 0) - t.amount;
       }
     }
     return balances;

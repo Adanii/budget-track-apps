@@ -11,6 +11,8 @@ class AppConstants {
   static const String typeIncome = 'income';
   static const String typeExpense = 'expense';
   static const String typeTransfer = 'transfer';
+  static const String typeAdjustmentAdd = 'adjustment_add';
+  static const String typeAdjustmentSub = 'adjustment_sub';
 
   // Expense Categories
   static const String expenseSmall = 'small_expense';

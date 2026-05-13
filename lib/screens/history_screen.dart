@@ -58,6 +58,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width > AppConstants.mobileBreakpoint;
     final wallets = ref.watch(walletsStreamProvider).value ?? [];
+    final totalBalanceAsync = ref.watch(latestBalanceProvider);
 
     return MainLayout(
       title: 'History',
@@ -65,7 +66,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildMonthHeader(context, ref, currentMonth),
-          _buildSummaryBar(context, ref, transactionsAsync, isDesktop),
+          _buildSummaryBar(context, ref, transactionsAsync, isDesktop, totalBalanceAsync),
           Expanded(
             child: Container(
               width: double.infinity,
@@ -160,19 +161,26 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildSummaryBar(BuildContext context, WidgetRef ref, AsyncValue transactionsAsync, bool isDesktop) {
+  Widget _buildSummaryBar(BuildContext context, WidgetRef ref, AsyncValue transactionsAsync, bool isDesktop, AsyncValue<int> totalBalanceAsync) {
     return transactionsAsync.when(
       data: (transactions) {
         final income = transactions
-            .where((t) => t.transactionType == 'income')
+            .where((t) => t.transactionType == AppConstants.typeIncome)
             .fold(0, (acc, t) => acc + t.amount);
         final expense = transactions
-            .where((t) => t.transactionType == 'expense')
+            .where((t) => t.transactionType == AppConstants.typeExpense)
+            .fold(0, (acc, t) => acc + t.amount);
+        final adjAdd = transactions
+            .where((t) => t.transactionType == AppConstants.typeAdjustmentAdd)
+            .fold(0, (acc, t) => acc + t.amount);
+        final adjSub = transactions
+            .where((t) => t.transactionType == AppConstants.typeAdjustmentSub)
             .fold(0, (acc, t) => acc + t.amount);
         final currencyFormat = NumberFormat.currency(
           locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0,
         );
-        final net = income - expense;
+        // Net bulan ini: income - expense + adjustments
+        final net = income - expense + adjAdd - adjSub;
         final isPositive = net >= 0;
 
         return Padding(
@@ -206,17 +214,50 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       size: 28,
                     ),
                     const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Net Saldo Bulan Ini', style: GoogleFonts.outfit(
-                          fontSize: 12, color: AppColors.textSecondary,
-                        )),
-                        Text(currencyFormat.format(net), style: GoogleFonts.outfit(
-                          fontSize: 22, fontWeight: FontWeight.bold,
-                          color: isPositive ? AppColors.income : AppColors.expense,
-                        )),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Arus Kas Bulan Ini', style: GoogleFonts.outfit(
+                            fontSize: 12, color: AppColors.textSecondary,
+                          )),
+                          Text(currencyFormat.format(net), style: GoogleFonts.outfit(
+                            fontSize: 22, fontWeight: FontWeight.bold,
+                            color: isPositive ? AppColors.income : AppColors.expense,
+                          )),
+                          Text(
+                            adjAdd > 0 || adjSub > 0
+                                ? 'Termasuk penyesuaian: ${adjAdd > 0 ? '+${currencyFormat.format(adjAdd)}' : ''}${adjSub > 0 ? ' -${currencyFormat.format(adjSub)}' : ''}'
+                                : 'Pemasukan dikurangi pengeluaran',
+                            style: GoogleFonts.outfit(fontSize: 10, color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Total saldo aktual dari semua waktu
+                    totalBalanceAsync.when(
+                      data: (total) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text('Total Saldo', style: GoogleFonts.outfit(
+                              fontSize: 10, color: AppColors.primary,
+                            )),
+                            Text(currencyFormat.format(total), style: GoogleFonts.outfit(
+                              fontSize: 14, fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            )),
+                          ],
+                        ),
+                      ),
+                      loading: () => const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                      error: (e, st) => const SizedBox.shrink(),
                     ),
                   ],
                 ),
@@ -302,7 +343,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 .where((t) => t.paymentMethod == _webWalletFilter)
                 .toList();
           }
-          return _buildTransactionTable(webFiltered, ref, wallets);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_webDateFilter != null && webFiltered.isNotEmpty) 
+                _buildDailySummary(webFiltered),
+              Expanded(child: _buildTransactionTable(webFiltered, ref, wallets)),
+            ],
+          );
         }
 
         // Build date list for this month
@@ -517,6 +565,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
             const SizedBox(height: 8),
 
+            // Daily summary
+            if (filteredList.isNotEmpty) _buildDailySummary(filteredList),
+
             // Transaction list for selected date
             Expanded(
               child: filteredList.isEmpty
@@ -548,6 +599,84 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       loading: () => const LoadingShimmer(),
       error: (e, _) => Center(child: Text('Error: $e')),
     );
+  }
+
+  Widget _buildDailySummary(List<TransactionModel> transactions) {
+    final dailyIncome = transactions
+        .where((t) => t.transactionType == AppConstants.typeIncome)
+        .fold(0, (sum, t) => sum + t.amount);
+    final dailyExpense = transactions
+        .where((t) => t.transactionType == AppConstants.typeExpense)
+        .fold(0, (sum, t) => sum + t.amount);
+
+    if (dailyIncome == 0 && dailyExpense == 0) return const SizedBox.shrink();
+
+    final format = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        children: [
+          if (dailyIncome > 0) Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.income.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.income.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.arrow_downward_rounded, color: AppColors.income, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Pemasukan Harian', style: GoogleFonts.outfit(color: AppColors.income.withValues(alpha: 0.8), fontSize: 10)),
+                        Text(format.format(dailyIncome), 
+                          style: GoogleFonts.outfit(color: AppColors.income, fontSize: 14, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (dailyIncome > 0 && dailyExpense > 0) const SizedBox(width: 12),
+          if (dailyExpense > 0) Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.expense.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.expense.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.arrow_upward_rounded, color: AppColors.expense, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Pengeluaran Harian', style: GoogleFonts.outfit(color: AppColors.expense.withValues(alpha: 0.8), fontSize: 10)),
+                        Text(format.format(dailyExpense), 
+                          style: GoogleFonts.outfit(color: AppColors.expense, fontSize: 14, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn().slideY(begin: 0.05);
   }
 
   Widget _buildEmptyDate() {
@@ -629,6 +758,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             final t = entry.value;
             final isIncome = t.transactionType == AppConstants.typeIncome;
             final isTransfer = t.transactionType == AppConstants.typeTransfer;
+            final isAdjAdd = t.transactionType == AppConstants.typeAdjustmentAdd;
+            final isAdjSub = t.transactionType == AppConstants.typeAdjustmentSub;
+            final isAdjustment = isAdjAdd || isAdjSub;
             
             final wallet = wallets.firstWhere((w) => w.id == t.paymentMethod, orElse: () => WalletModel(id: t.paymentMethod, bank: t.paymentMethod, name: '', createdAt: DateTime.now()));
             final destinationWallet = t.destinationWallet != null 
@@ -653,10 +785,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ),
                 DataCell(
                   Text(
-                    '${isTransfer ? '' : (isIncome ? '+' : '-')}${currencyFormat.format(t.amount)}',
+                    '${(isTransfer || isAdjustment) ? '' : (isIncome ? '+' : '-')}${isAdjAdd ? '+' : (isAdjSub ? '-' : '')}${currencyFormat.format(t.amount)}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isTransfer ? AppColors.primary : (isIncome ? AppColors.income : AppColors.expense),
+                      color: isTransfer 
+                          ? AppColors.primary 
+                          : (isAdjustment 
+                              ? Colors.grey 
+                              : (isIncome ? AppColors.income : AppColors.expense)),
                     ),
                   ),
                 ),
@@ -690,6 +826,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     }
     if (transactionType == AppConstants.typeTransfer) {
       return const _Badge(label: 'Transfer', color: AppColors.primary);
+    }
+    if (transactionType == AppConstants.typeAdjustmentAdd || transactionType == AppConstants.typeAdjustmentSub) {
+      return const _Badge(label: 'Penyesuaian', color: Colors.grey);
     }
     
     switch (type) {

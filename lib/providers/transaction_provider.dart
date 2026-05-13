@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fin_track/models/transaction_model.dart';
 import 'package:fin_track/services/firestore_service.dart';
+import 'package:fin_track/core/constants.dart';
 import 'package:intl/intl.dart';
 
 final firestoreServiceProvider = Provider((ref) => FirestoreService());
@@ -41,9 +42,9 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       final latestBalance = await _service.getLatestBalance();
-      final newBalance = transactionType == 'income' 
+      final newBalance = transactionType == AppConstants.typeIncome || transactionType == AppConstants.typeAdjustmentAdd
           ? latestBalance + amount 
-          : transactionType == 'expense' 
+          : transactionType == AppConstants.typeExpense || transactionType == AppConstants.typeAdjustmentSub
               ? latestBalance - amount
               : latestBalance; // Transfer does not change total balance
 
