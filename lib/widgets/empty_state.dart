@@ -26,39 +26,39 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: AppColors.textSecondary),
-            const SizedBox(height: 16),
+            Icon(icon, size: 64, color: context.colors.textSecondary),
+            SizedBox(height: 16),
             Text(
               title,
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               subtitle,
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               OutlinedButton(
                 onPressed: onAction,
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.primary),
+                  side: BorderSide(color: context.colors.primary),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: Text(
                   actionLabel!,
-                  style: const TextStyle(color: AppColors.primary),
+                  style: TextStyle(color: context.colors.primary),
                 ),
               ),
             ],

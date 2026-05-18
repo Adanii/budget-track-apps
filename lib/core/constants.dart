@@ -6,6 +6,7 @@ class AppConstants {
   // Firestore Collection Names
   static const String transactionsCollection = 'transactions';
   static const String walletsCollection = 'wallets';
+  static const String tripPlansCollection = 'trip_plans';
 
   // Transaction Types
   static const String typeIncome = 'income';

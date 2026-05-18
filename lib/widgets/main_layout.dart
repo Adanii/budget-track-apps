@@ -8,14 +8,23 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:ui';
 
-class MainLayout extends StatelessWidget {
+import 'package:fin_track/providers/theme_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class MainLayout extends ConsumerWidget {
   final Widget child;
   final String title;
+  final Widget? floatingActionButton;
 
-  const MainLayout({super.key, required this.child, required this.title});
+  const MainLayout({
+    super.key,
+    required this.child,
+    required this.title,
+    this.floatingActionButton,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < AppConstants.mobileBreakpoint;
 
@@ -23,10 +32,7 @@ class MainLayout extends StatelessWidget {
       extendBodyBehindAppBar: true,
       appBar: isMobile
           ? AppBar(
-              title: Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+              title: Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
               centerTitle: false,
               backgroundColor: Colors.transparent,
               elevation: 0,
@@ -34,30 +40,27 @@ class MainLayout extends StatelessWidget {
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Container(
-                    color: AppColors.background.withValues(alpha: 0.7),
+                    color: context.colors.background.withValues(alpha: 0.7),
                   ),
                 ),
               ),
             )
           : null,
-      drawer: isMobile ? _buildDrawer(context) : null,
+      drawer: isMobile ? _buildDrawer(context, ref) : null,
+      floatingActionButton: floatingActionButton,
       body: Stack(
         children: [
           // Background Gradient
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.background, Color(0xFF1A1D1F)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+              decoration: BoxDecoration(
+                gradient: context.colors.backgroundGradient,
               ),
             ),
           ),
           Row(
             children: [
-              if (!isMobile) _buildSidebar(context),
+              if (!isMobile) _buildSidebar(context, ref),
               Expanded(
                 child: SafeArea(
                   top: isMobile,
@@ -78,16 +81,16 @@ class MainLayout extends StatelessWidget {
     );
   }
 
-  Widget _buildSidebar(BuildContext context) {
+  Widget _buildSidebar(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).uri.path;
+    final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
+    final showQuickTip = MediaQuery.of(context).size.height > 840;
 
     return Container(
       width: 260,
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.6),
-        border: Border(
-          right: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-        ),
+        color: context.colors.surface.withValues(alpha: 0.8),
+        border: Border(right: BorderSide(color: context.colors.border)),
       ),
       child: ClipRRect(
         child: BackdropFilter(
@@ -97,20 +100,22 @@ class MainLayout extends StatelessWidget {
             children: [
               // ── Branding ──────────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
+                padding: const EdgeInsets.fromLTRB(24, 34, 24, 20),
                 child: Row(
                   children: [
                     Container(
                       width: 42,
                       height: 42,
                       decoration: BoxDecoration(
-                        gradient: AppColors.primaryGradient,
+                        gradient: context.colors.primaryGradient,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.4),
+                            color: context.colors.primary.withValues(
+                              alpha: 0.4,
+                            ),
                             blurRadius: 12,
-                            offset: const Offset(0, 4),
+                            offset: Offset(0, 4),
                           ),
                         ],
                       ),
@@ -140,7 +145,7 @@ class MainLayout extends StatelessWidget {
                           'Kelola keuangan Anda',
                           style: GoogleFonts.outfit(
                             fontSize: 11,
-                            color: AppColors.textMuted,
+                            color: context.colors.textMuted,
                           ),
                         ),
                       ],
@@ -177,53 +182,104 @@ class MainLayout extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              _CollapsibleSection(
-                title: 'TRANSAKSI',
-                horizontalPadding: 24,
-                children: [
-                  _buildMenuItem(
-                    context,
-                    location,
-                    icon: Icons.add_circle_outline_rounded,
-                    label: 'Tambah Pemasukan',
-                    route: '/add-income',
-                    accentColor: AppColors.income,
+              SizedBox(height: 16),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _CollapsibleSection(
+                        title: 'TRANSAKSI',
+                        horizontalPadding: 24,
+                        children: [
+                          _buildMenuItem(
+                            context,
+                            location,
+                            icon: Icons.add_circle_outline_rounded,
+                            label: 'Tambah Pemasukan',
+                            route: '/add-income',
+                            accentColor: context.colors.income,
+                          ),
+                          _buildMenuItem(
+                            context,
+                            location,
+                            icon: Icons.remove_circle_outline_rounded,
+                            label: 'Tambah Pengeluaran',
+                            route: '/add-expense',
+                            accentColor: context.colors.expense,
+                          ),
+                          _buildMenuItem(
+                            context,
+                            location,
+                            icon: Icons.swap_horiz_rounded,
+                            label: 'Transfer Saldo',
+                            route: '/transfer',
+                            accentColor: context.colors.primary,
+                          ),
+                          _buildMenuItem(
+                            context,
+                            location,
+                            icon: Icons.tune_rounded,
+                            label: 'Penyesuaian Saldo',
+                            route: '/add-adjustment',
+                            accentColor: Colors.grey,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      _CollapsibleSection(
+                        title: 'PLAN',
+                        horizontalPadding: 24,
+                        children: [
+                          _buildMenuItem(
+                            context,
+                            location,
+                            icon: Icons.travel_explore_rounded,
+                            label: 'Travel Plan',
+                            route: '/travel-plan',
+                            accentColor: context.colors.info,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  _buildMenuItem(
-                    context,
-                    location,
-                    icon: Icons.remove_circle_outline_rounded,
-                    label: 'Tambah Pengeluaran',
-                    route: '/add-expense',
-                    accentColor: AppColors.expense,
-                  ),
-                  _buildMenuItem(
-                    context,
-                    location,
-                    icon: Icons.swap_horiz_rounded,
-                    label: 'Transfer Saldo',
-                    route: '/transfer',
-                    accentColor: AppColors.primary,
-                  ),
-                  _buildMenuItem(
-                    context,
-                    location,
-                    icon: Icons.tune_rounded,
-                    label: 'Penyesuaian Saldo',
-                    route: '/add-adjustment',
-                    accentColor: Colors.grey,
-                  ),
-                ],
+                ),
               ),
 
-              const Spacer(),
+              // ── Theme Switcher ────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isDark ? 'Dark Mode' : 'Light Mode',
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                    Switch(
+                      value: isDark,
+                      onChanged: (val) =>
+                          ref.read(themeModeProvider.notifier).toggleTheme(),
+                      activeThumbColor: context.colors.primary,
+                    ),
+                  ],
+                ),
+              ),
 
               // ── Bottom Quick Action ───────────────────────────────────
-              _buildQuickTip(),
-              const SizedBox(height: 10),
-              // ── Download APK ──────────────────────────────────────────
-              _buildDownloadAPK(),
+              if (showQuickTip) ...[
+                _buildQuickTip(context),
+                const SizedBox(height: 10),
+              ],
+
               const SizedBox(height: 4),
               Center(
                 child: FutureBuilder<PackageInfo>(
@@ -236,7 +292,7 @@ class MainLayout extends StatelessWidget {
                       'v$version',
                       style: GoogleFonts.outfit(
                         fontSize: 10,
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                       ),
                     );
                   },
@@ -250,19 +306,24 @@ class MainLayout extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickTip() {
+  Widget _buildQuickTip(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppColors.primary.withValues(alpha: 0.15), AppColors.card],
+            colors: [
+              context.colors.primary.withValues(alpha: 0.15),
+              context.colors.card,
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: context.colors.primary.withValues(alpha: 0.2),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,32 +333,32 @@ class MainLayout extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.15),
+                    color: context.colors.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.tips_and_updates_rounded,
-                    color: AppColors.primary,
+                    color: context.colors.primary,
                     size: 14,
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(
                   'Quick Tip',
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: context.colors.primary,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               'Catat setiap transaksi untuk laporan yang akurat.',
               style: GoogleFonts.outfit(
                 fontSize: 11,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -307,7 +368,7 @@ class MainLayout extends StatelessWidget {
     );
   }
 
-  Widget _buildDownloadAPK() {
+  Widget _buildDownloadAPK(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       child: Material(
@@ -329,15 +390,15 @@ class MainLayout extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF3DDC84).withValues(alpha: 0.2),
-                  AppColors.card,
+                  Color(0xFF3DDC84).withValues(alpha: 0.2),
+                  context.colors.card,
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFF3DDC84).withValues(alpha: 0.3),
+                color: Color(0xFF3DDC84).withValues(alpha: 0.3),
               ),
             ),
             child: Row(
@@ -371,7 +432,7 @@ class MainLayout extends StatelessWidget {
                         'Android build',
                         style: GoogleFonts.outfit(
                           fontSize: 10,
-                          color: AppColors.textMuted,
+                          color: context.colors.textMuted,
                         ),
                       ),
                     ],
@@ -399,7 +460,7 @@ class MainLayout extends StatelessWidget {
     Color? accentColor,
   }) {
     final isSelected = location == route;
-    final color = accentColor ?? AppColors.primary;
+    final color = accentColor ?? context.colors.primary;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -410,7 +471,7 @@ class MainLayout extends StatelessWidget {
           onTap: () => context.go(route),
           borderRadius: BorderRadius.circular(14),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+            duration: Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: isSelected
@@ -428,24 +489,24 @@ class MainLayout extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? color.withValues(alpha: 0.15)
-                        : Colors.white.withValues(alpha: 0.04),
+                        : context.colors.border.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     icon,
                     size: 16,
-                    color: isSelected ? color : AppColors.textSecondary,
+                    color: isSelected ? color : context.colors.textSecondary,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     label,
                     style: GoogleFonts.outfit(
                       fontSize: 13,
                       color: isSelected
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                          ? context.colors.textPrimary
+                          : context.colors.textSecondary,
                       fontWeight: isSelected
                           ? FontWeight.w600
                           : FontWeight.normal,
@@ -469,10 +530,11 @@ class MainLayout extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawer(BuildContext context) {
+  Widget _buildDrawer(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).uri.path;
+    final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
     return Drawer(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.colors.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -482,7 +544,7 @@ class MainLayout extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primary.withValues(alpha: 0.15),
+                  context.colors.primary.withValues(alpha: 0.15),
                   Colors.transparent,
                 ],
                 begin: Alignment.topCenter,
@@ -495,7 +557,7 @@ class MainLayout extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
+                    gradient: context.colors.primaryGradient,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ClipRRect(
@@ -508,7 +570,7 @@ class MainLayout extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -523,7 +585,7 @@ class MainLayout extends StatelessWidget {
                       'Kelola keuangan Anda',
                       style: GoogleFonts.outfit(
                         fontSize: 11,
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                       ),
                     ),
                   ],
@@ -536,7 +598,7 @@ class MainLayout extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   _CollapsibleSection(
                     title: 'MENU',
                     horizontalPadding: 16,
@@ -565,6 +627,7 @@ class MainLayout extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
+
                   _CollapsibleSection(
                     title: 'TRANSAKSI',
                     horizontalPadding: 16,
@@ -575,7 +638,7 @@ class MainLayout extends StatelessWidget {
                         Icons.add_circle_outline_rounded,
                         'Tambah Pemasukan',
                         '/add-income',
-                        color: AppColors.income,
+                        color: context.colors.income,
                       ),
                       _buildDrawerItem(
                         context,
@@ -583,7 +646,7 @@ class MainLayout extends StatelessWidget {
                         Icons.remove_circle_outline_rounded,
                         'Tambah Pengeluaran',
                         '/add-expense',
-                        color: AppColors.expense,
+                        color: context.colors.expense,
                       ),
                       _buildDrawerItem(
                         context,
@@ -591,7 +654,7 @@ class MainLayout extends StatelessWidget {
                         Icons.swap_horiz_rounded,
                         'Transfer Saldo',
                         '/transfer',
-                        color: AppColors.primary,
+                        color: context.colors.primary,
                       ),
                       _buildDrawerItem(
                         context,
@@ -603,12 +666,50 @@ class MainLayout extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  _CollapsibleSection(
+                    title: 'PLAN',
+                    horizontalPadding: 16,
+                    children: [
+                      _buildDrawerItem(
+                        context,
+                        location,
+                        Icons.travel_explore_rounded,
+                        'Travel Plan',
+                        '/travel-plan',
+                        color: context.colors.info,
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ),
-          _buildQuickTip(),
-          _buildDownloadAPK(),
+          // ── Theme Switcher for Drawer ────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isDark ? 'Dark Mode' : 'Light Mode',
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+                Switch(
+                  value: isDark,
+                  onChanged: (val) =>
+                      ref.read(themeModeProvider.notifier).toggleTheme(),
+                  activeThumbColor: context.colors.primary,
+                ),
+              ],
+            ),
+          ),
+          _buildQuickTip(context),
+
           const SizedBox(height: 4),
           Center(
             child: FutureBuilder<PackageInfo>(
@@ -621,7 +722,7 @@ class MainLayout extends StatelessWidget {
                   'v$version',
                   style: GoogleFonts.outfit(
                     fontSize: 10,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                 );
               },
@@ -642,7 +743,7 @@ class MainLayout extends StatelessWidget {
     Color? color,
   }) {
     final isSelected = location == route;
-    final itemColor = color ?? AppColors.primary;
+    final itemColor = color ?? context.colors.primary;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: ListTile(
@@ -651,12 +752,12 @@ class MainLayout extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected
                 ? itemColor.withValues(alpha: 0.15)
-                : Colors.white.withValues(alpha: 0.04),
+                : context.colors.border.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
             icon,
-            color: isSelected ? itemColor : AppColors.textSecondary,
+            color: isSelected ? itemColor : context.colors.textSecondary,
             size: 16,
           ),
         ),
@@ -665,7 +766,9 @@ class MainLayout extends StatelessWidget {
           style: GoogleFonts.outfit(
             color:
                 color ??
-                (isSelected ? AppColors.textPrimary : AppColors.textSecondary),
+                (isSelected
+                    ? context.colors.textPrimary
+                    : context.colors.textSecondary),
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             fontSize: 13,
           ),
@@ -685,13 +788,11 @@ class MainLayout extends StatelessWidget {
 class _CollapsibleSection extends StatefulWidget {
   final String title;
   final List<Widget> children;
-  final bool initiallyExpanded;
   final double horizontalPadding;
 
   const _CollapsibleSection({
     required this.title,
     required this.children,
-    this.initiallyExpanded = true,
     this.horizontalPadding = 24.0,
   });
 
@@ -705,7 +806,7 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
   @override
   void initState() {
     super.initState();
-    _isExpanded = widget.initiallyExpanded;
+    _isExpanded = true;
   }
 
   @override
@@ -720,7 +821,12 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
             });
           },
           child: Padding(
-            padding: EdgeInsets.fromLTRB(widget.horizontalPadding, 8, widget.horizontalPadding, 8),
+            padding: EdgeInsets.fromLTRB(
+              widget.horizontalPadding,
+              8,
+              widget.horizontalPadding,
+              8,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -728,15 +834,17 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
                   widget.title,
                   style: GoogleFonts.outfit(
                     fontSize: 10,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.5,
                   ),
                 ),
                 Icon(
-                  _isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  _isExpanded
+                      ? Icons.expand_less_rounded
+                      : Icons.expand_more_rounded,
                   size: 16,
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
               ],
             ),
@@ -748,7 +856,9 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: widget.children,
           ),
-          crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          crossFadeState: _isExpanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 200),
         ),
       ],

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fin_track/core/theme.dart';
 
 class PaymentUtils {
-  static Widget getPaymentIcon(String method, {double size = 20}) {
-    final color = getPaymentColor(method);
+  static Widget getPaymentIcon(String method, BuildContext context, {double size = 20}) {
+    final color = getPaymentColor(method, context);
 
     // Generic methods use standard icons
     if (method == 'Cash') {
@@ -50,7 +50,7 @@ class PaymentUtils {
     );
   }
 
-  static Color getPaymentColor(String method) {
+  static Color getPaymentColor(String method, BuildContext context) {
     switch (method) {
       case 'Mandiri':
         return Colors.amber;
@@ -65,13 +65,13 @@ class PaymentUtils {
       case 'Bank Jago':
         return Colors.tealAccent;
       case 'Cash':
-        return AppColors.warning;
+        return context.colors.warning;
       case 'QR':
-        return AppColors.info;
+        return context.colors.info;
       case 'Debit':
         return Colors.purpleAccent;
       default:
-        return AppColors.textMuted;
+        return const Color(0xFF8B9597);
     }
   }
 }

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:fin_track/core/theme.dart';
-import 'package:fin_track/models/transaction_model.dart';
+import 'package:fin_track/features/transaction/domain/entities/transaction_entity.dart';
 import 'package:fin_track/core/constants.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fin_track/models/wallet_model.dart';
-import 'package:fin_track/providers/wallet_provider.dart';
+import 'package:fin_track/features/wallet/domain/entities/wallet_entity.dart';
+import 'package:fin_track/features/wallet/presentation/providers/wallet_providers.dart';
 
 class TransactionCard extends ConsumerWidget {
-  final TransactionModel transaction;
+  final TransactionEntity transaction;
   final VoidCallback onDelete;
   final VoidCallback? onLongPress;
 
@@ -24,17 +24,39 @@ class TransactionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wallets = ref.watch(walletsStreamProvider).value ?? [];
-    final wallet = wallets.firstWhere((w) => w.id == transaction.paymentMethod, orElse: () => WalletModel(id: transaction.paymentMethod, bank: transaction.paymentMethod, name: '', createdAt: DateTime.now()));
-    final destinationWallet = transaction.destinationWallet != null 
-        ? wallets.firstWhere((w) => w.id == transaction.destinationWallet, orElse: () => WalletModel(id: transaction.destinationWallet!, bank: transaction.destinationWallet!, name: '', createdAt: DateTime.now()))
+    final wallet = wallets.firstWhere(
+      (w) => w.id == transaction.paymentMethod,
+      orElse: () => WalletEntity(
+        id: transaction.paymentMethod,
+        bank: transaction.paymentMethod,
+        name: '',
+        createdAt: DateTime.now(),
+      ),
+    );
+    final destinationWallet = transaction.destinationWallet != null
+        ? wallets.firstWhere(
+            (w) => w.id == transaction.destinationWallet,
+            orElse: () => WalletEntity(
+              id: transaction.destinationWallet!,
+              bank: transaction.destinationWallet!,
+              name: '',
+              createdAt: DateTime.now(),
+            ),
+          )
         : null;
 
     final isIncome = transaction.transactionType == AppConstants.typeIncome;
     final isTransfer = transaction.transactionType == AppConstants.typeTransfer;
-    final isAdjAdd = transaction.transactionType == AppConstants.typeAdjustmentAdd;
-    final isAdjSub = transaction.transactionType == AppConstants.typeAdjustmentSub;
+    final isAdjAdd =
+        transaction.transactionType == AppConstants.typeAdjustmentAdd;
+    final isAdjSub =
+        transaction.transactionType == AppConstants.typeAdjustmentSub;
     final isAdjustment = isAdjAdd || isAdjSub;
-    final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
 
     return Dismissible(
       key: Key(transaction.id),
@@ -43,10 +65,10 @@ class TransactionCard extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: AppColors.expense,
+          color: context.colors.expense,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(Icons.delete, color: Colors.white),
+        child: Icon(Icons.delete, color: Colors.white),
       ),
       onDismissed: (_) => onDelete(),
       child: Card(
@@ -65,16 +87,28 @@ class TransactionCard extends ConsumerWidget {
                     Row(
                       children: [
                         Icon(
-                          isTransfer ? Icons.swap_horiz_rounded : (isAdjustment ? Icons.tune_rounded : (isIncome ? Icons.arrow_downward : Icons.arrow_upward)),
+                          isTransfer
+                              ? Icons.swap_horiz_rounded
+                              : (isAdjustment
+                                    ? Icons.tune_rounded
+                                    : (isIncome
+                                          ? Icons.arrow_downward
+                                          : Icons.arrow_upward)),
                           size: 16,
-                          color: isTransfer ? AppColors.primary : (isAdjustment ? Colors.grey : (isIncome ? AppColors.income : AppColors.expense)),
+                          color: isTransfer
+                              ? context.colors.primary
+                              : (isAdjustment
+                                    ? Colors.grey
+                                    : (isIncome
+                                          ? context.colors.income
+                                          : context.colors.expense)),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Text(
                           transaction.person,
                           style: GoogleFonts.outfit(
                             fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                           ),
                         ),
                       ],
@@ -83,34 +117,36 @@ class TransactionCard extends ConsumerWidget {
                       DateFormat('dd MMM yyyy').format(transaction.date),
                       style: GoogleFonts.outfit(
                         fontSize: 12,
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 if (transaction.note.isNotEmpty) ...[
                   Text(
                     transaction.note,
                     style: GoogleFonts.outfit(
                       fontSize: 14,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                 ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        _getPaymentIcon(transaction.paymentMethod),
+                        _getPaymentIcon(transaction.paymentMethod, context),
                         const SizedBox(width: 6),
                         Text(
-                          isTransfer ? '${wallet.displayName} → ${destinationWallet?.displayName ?? transaction.destinationWallet}' : wallet.displayName,
+                          isTransfer
+                              ? '${wallet.displayName} → ${destinationWallet?.displayName ?? transaction.destinationWallet}'
+                              : wallet.displayName,
                           style: GoogleFonts.outfit(
                             fontSize: 12,
-                            color: AppColors.textMuted,
+                            color: context.colors.textMuted,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -121,7 +157,13 @@ class TransactionCard extends ConsumerWidget {
                       style: GoogleFonts.outfit(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: isTransfer ? AppColors.primary : (isAdjustment ? Colors.grey : (isIncome ? AppColors.income : AppColors.expense)),
+                        color: isTransfer
+                            ? context.colors.primary
+                            : (isAdjustment
+                                  ? Colors.grey
+                                  : (isIncome
+                                        ? context.colors.income
+                                        : context.colors.expense)),
                       ),
                     ),
                   ],
@@ -134,12 +176,16 @@ class TransactionCard extends ConsumerWidget {
     );
   }
 
-  Widget _getPaymentIcon(String method) {
+  Widget _getPaymentIcon(String method, BuildContext context) {
     switch (method) {
-      case 'Cash': return const Icon(Icons.money, color: AppColors.warning, size: 16);
-      case 'QR': return const Icon(Icons.qr_code_scanner, color: Colors.blue, size: 16);
-      case 'Debit': return const Icon(Icons.credit_card, color: Colors.purple, size: 16);
-      default: return const Icon(Icons.payment, size: 16);
+      case 'Cash':
+        return Icon(Icons.money, color: context.colors.warning, size: 16);
+      case 'QR':
+        return const Icon(Icons.qr_code_scanner, color: Colors.blue, size: 16);
+      case 'Debit':
+        return const Icon(Icons.credit_card, color: Colors.purple, size: 16);
+      default:
+        return const Icon(Icons.payment, size: 16);
     }
   }
 }

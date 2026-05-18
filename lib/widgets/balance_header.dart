@@ -3,7 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fin_track/core/theme.dart';
 import 'package:fin_track/utils/payment_utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fin_track/providers/wallet_provider.dart';
+import 'package:fin_track/features/wallet/presentation/providers/wallet_providers.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -36,7 +36,10 @@ class _BalanceHeaderState extends ConsumerState<BalanceHeader>
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
-    _expandAnim = CurvedAnimation(parent: _animController, curve: Curves.easeInOut);
+    _expandAnim = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -56,7 +59,11 @@ class _BalanceHeaderState extends ConsumerState<BalanceHeader>
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
     final isNegative = widget.balance < 0;
     final walletsAsync = ref.watch(walletsStreamProvider);
     final balances = widget.walletBalances ?? {};
@@ -64,7 +71,7 @@ class _BalanceHeaderState extends ConsumerState<BalanceHeader>
     return GestureDetector(
       onTap: _toggle,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 350),
+        duration: Duration(milliseconds: 350),
         curve: Curves.easeInOut,
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -72,22 +79,24 @@ class _BalanceHeaderState extends ConsumerState<BalanceHeader>
           borderRadius: BorderRadius.circular(28),
           gradient: LinearGradient(
             colors: [
-              AppColors.primary.withValues(alpha: _expanded ? 0.35 : 0.25),
-              AppColors.card,
+              context.colors.primary.withValues(alpha: _expanded ? 0.35 : 0.25),
+              context.colors.card,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           border: Border.all(
-            color: AppColors.primary.withValues(alpha: _expanded ? 0.35 : 0.2),
+            color: context.colors.primary.withValues(
+              alpha: _expanded ? 0.35 : 0.2,
+            ),
           ),
           boxShadow: _expanded
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.15),
+                    color: context.colors.primary.withValues(alpha: 0.15),
                     blurRadius: 24,
-                    offset: const Offset(0, 8),
-                  )
+                    offset: Offset(0, 8),
+                  ),
                 ]
               : [],
         ),
@@ -98,45 +107,48 @@ class _BalanceHeaderState extends ConsumerState<BalanceHeader>
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.15),
+                    color: context.colors.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     widget.monthName,
                     style: GoogleFonts.outfit(
                       fontSize: 12,
-                      color: AppColors.primaryLight,
+                      color: context.colors.primaryLight,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.3,
                     ),
                   ),
                 ),
-                const Spacer(),
+                Spacer(),
                 AnimatedRotation(
                   turns: _expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 300),
                   child: Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    color: AppColors.primary.withValues(alpha: 0.7),
+                    color: context.colors.primary.withValues(alpha: 0.7),
                     size: 22,
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             Text(
               'Total Saldo',
               style: GoogleFonts.outfit(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             TweenAnimationBuilder<double>(
               tween: Tween<double>(begin: 0, end: widget.balance.toDouble()),
               duration: const Duration(milliseconds: 1200),
@@ -147,37 +159,44 @@ class _BalanceHeaderState extends ConsumerState<BalanceHeader>
                   style: GoogleFonts.outfit(
                     fontSize: 34,
                     fontWeight: FontWeight.bold,
-                    color: isNegative ? AppColors.expense : AppColors.textPrimary,
+                    color: isNegative
+                        ? context.colors.expense
+                        : context.colors.textPrimary,
                     letterSpacing: -0.5,
                   ),
                 );
               },
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Row(
               children: [
                 Container(
-                  width: 8, height: 8,
+                  width: 8,
+                  height: 8,
                   decoration: BoxDecoration(
-                    color: isNegative ? AppColors.expense : AppColors.income,
+                    color: isNegative
+                        ? context.colors.expense
+                        : context.colors.income,
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: 6),
                 Text(
                   isNegative ? 'Saldo negatif' : 'Saldo tersedia',
                   style: GoogleFonts.outfit(
                     fontSize: 12,
-                    color: isNegative ? AppColors.expense : AppColors.income,
+                    color: isNegative
+                        ? context.colors.expense
+                        : context.colors.income,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const Spacer(),
+                Spacer(),
                 Text(
                   _expanded ? 'Tutup rincian' : 'Lihat rincian',
                   style: GoogleFonts.outfit(
                     fontSize: 11,
-                    color: AppColors.primary.withValues(alpha: 0.7),
+                    color: context.colors.primary.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -190,18 +209,22 @@ class _BalanceHeaderState extends ConsumerState<BalanceHeader>
               axisAlignment: -1,
               child: walletsAsync.when(
                 data: (wallets) {
-                  final nonZeroWallets = wallets.where((w) => (balances[w.id] ?? 0) != 0).toList();
-                  final allWallets = nonZeroWallets.isNotEmpty ? nonZeroWallets : wallets;
+                  final nonZeroWallets = wallets
+                      .where((w) => (balances[w.id] ?? 0) != 0)
+                      .toList();
+                  final allWallets = nonZeroWallets.isNotEmpty
+                      ? nonZeroWallets
+                      : wallets;
                   return Column(
                     children: [
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       Container(
                         height: 1,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
                               Colors.transparent,
-                              AppColors.primary.withValues(alpha: 0.3),
+                              context.colors.primary.withValues(alpha: 0.3),
                               Colors.transparent,
                             ],
                           ),
@@ -212,64 +235,87 @@ class _BalanceHeaderState extends ConsumerState<BalanceHeader>
                         final i = entry.key;
                         final wallet = entry.value;
                         final walletBalance = balances[wallet.id] ?? 0;
-                        final color = PaymentUtils.getPaymentColor(wallet.bank);
+                        final color = PaymentUtils.getPaymentColor(
+                          wallet.bank,
+                          context,
+                        );
                         final pct = widget.balance != 0
                             ? (walletBalance / widget.balance).clamp(0.0, 1.0)
                             : 0.0;
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(7),
-                                decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: PaymentUtils.getPaymentIcon(wallet.bank, size: 14),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          wallet.displayName,
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 12,
-                                            color: AppColors.textSecondary,
-                                            fontWeight: FontWeight.w500,
+                          child:
+                              Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(7),
+                                        decoration: BoxDecoration(
+                                          color: color.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
                                           ),
                                         ),
-                                        const Spacer(),
-                                        Text(
-                                          currencyFormat.format(walletBalance),
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.textPrimary,
-                                          ),
+                                        child: PaymentUtils.getPaymentIcon(
+                                          wallet.bank, context, size: 14,
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: LinearProgressIndicator(
-                                        value: pct.toDouble(),
-                                        minHeight: 4,
-                                        backgroundColor: Colors.white.withValues(alpha: 0.07),
-                                        valueColor: AlwaysStoppedAnimation<Color>(color),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ).animate().fadeIn(delay: (i * 60).ms).slideX(begin: 0.05),
+                                      SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  wallet.displayName,
+                                                  style: GoogleFonts.outfit(
+                                                    fontSize: 12,
+                                                    color: context
+                                                        .colors
+                                                        .textSecondary,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                Spacer(),
+                                                Text(
+                                                  currencyFormat.format(
+                                                    walletBalance,
+                                                  ),
+                                                  style: GoogleFonts.outfit(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: context
+                                                        .colors
+                                                        .textPrimary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 6),
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              child: LinearProgressIndicator(
+                                                value: pct.toDouble(),
+                                                minHeight: 4,
+                                                backgroundColor: Colors.white
+                                                    .withValues(alpha: 0.07),
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(color),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                  .animate()
+                                  .fadeIn(delay: (i * 60).ms)
+                                  .slideX(begin: 0.05),
                         );
                       }),
                     ],
@@ -277,7 +323,9 @@ class _BalanceHeaderState extends ConsumerState<BalanceHeader>
                 },
                 loading: () => const Padding(
                   padding: EdgeInsets.only(top: 16),
-                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
                 error: (e, _) => const SizedBox.shrink(),
               ),

@@ -16,37 +16,37 @@ class ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.cloud_off_outlined, size: 64, color: AppColors.expense),
-            const SizedBox(height: 16),
+            Icon(Icons.cloud_off_outlined, size: 64, color: context.colors.expense),
+            SizedBox(height: 16),
             Text(
               "Oops!",
               style: GoogleFonts.outfit(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             OutlinedButton(
               onPressed: onRetry,
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: AppColors.primary),
+                side: BorderSide(color: context.colors.primary),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 "Coba Lagi",
-                style: TextStyle(color: AppColors.primary),
+                style: TextStyle(color: context.colors.primary),
               ),
             ),
           ],

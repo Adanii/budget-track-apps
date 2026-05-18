@@ -9,15 +9,15 @@ class LoadingShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.builder(
       shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+      physics: NeverScrollableScrollPhysics(),
       itemCount: 5,
       padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: Shimmer.fromColors(
-            baseColor: AppColors.surface,
-            highlightColor: AppColors.card,
+            baseColor: context.colors.surface,
+            highlightColor: context.colors.card,
             child: Container(
               height: 100,
               decoration: BoxDecoration(

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fin_track/core/theme.dart';
-import 'package:fin_track/providers/transaction_provider.dart';
+import 'package:fin_track/features/transaction/presentation/providers/transaction_providers.dart';
 import 'package:fin_track/widgets/transaction_card.dart';
 import 'package:fin_track/widgets/loading_shimmer.dart';
 import 'package:fin_track/widgets/empty_state.dart';
@@ -10,9 +10,9 @@ import 'package:fin_track/widgets/main_layout.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fin_track/core/constants.dart';
-import 'package:fin_track/models/transaction_model.dart';
-import 'package:fin_track/models/wallet_model.dart';
-import 'package:fin_track/providers/wallet_provider.dart';
+import 'package:fin_track/features/transaction/domain/entities/transaction_entity.dart';
+import 'package:fin_track/features/wallet/domain/entities/wallet_entity.dart';
+import 'package:fin_track/features/wallet/presentation/providers/wallet_providers.dart';
 import 'package:fin_track/utils/payment_utils.dart';
 import 'package:go_router/go_router.dart';
 
@@ -44,7 +44,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
     // Today first, then backwards; if viewing another month show newest first
     final todayIndex = allDates.indexOf(todayStr);
-    if (todayIndex == -1) return allDates.reversed.toList(); // past month → newest first
+    if (todayIndex == -1) {
+      return allDates.reversed.toList(); // past month → newest first
+    }
     // today → day 1 only (no future dates)
     return allDates.sublist(0, todayIndex + 1).reversed.toList();
   }
@@ -66,18 +68,32 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildMonthHeader(context, ref, currentMonth),
-          _buildSummaryBar(context, ref, transactionsAsync, isDesktop, totalBalanceAsync),
+          _buildSummaryBar(
+            context,
+            ref,
+            transactionsAsync,
+            isDesktop,
+            totalBalanceAsync,
+          ),
           Expanded(
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppColors.surface.withValues(alpha: 0.5),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                color: context.colors.surface.withValues(alpha: 0.5),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(32),
+                ),
               ),
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(32),
+                ),
                 child: _buildTransactionList(
-                  transactionsAsync, ref, currentMonth, isDesktop, wallets,
+                  transactionsAsync,
+                  ref,
+                  currentMonth,
+                  isDesktop,
+                  wallets,
                 ),
               ),
             ),
@@ -87,7 +103,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildMonthHeader(BuildContext context, WidgetRef ref, String currentMonth) {
+  Widget _buildMonthHeader(
+    BuildContext context,
+    WidgetRef ref,
+    String currentMonth,
+  ) {
     final date = DateFormat('yyyy-MM').parse(currentMonth);
     final monthName = DateFormat('MMMM yyyy').format(date);
 
@@ -99,15 +119,24 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Riwayat', style: GoogleFonts.outfit(
-                fontSize: 28, fontWeight: FontWeight.bold,
-              )),
-              Text('Laporan keuangan bulan ini', style: GoogleFonts.outfit(
-                fontSize: 13, color: AppColors.textSecondary,
-              )),
+              Text(
+                'Riwayat',
+                style: GoogleFonts.outfit(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'Laporan keuangan bulan ini',
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  color: context.colors.textSecondary,
+                ),
+              ),
             ],
           ),
-          if (MediaQuery.of(context).size.width > AppConstants.mobileBreakpoint) ...[
+          if (MediaQuery.of(context).size.width >
+              AppConstants.mobileBreakpoint) ...[
             const SizedBox(width: 16),
             Expanded(
               child: Padding(
@@ -122,21 +151,35 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
+                color: context.colors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: context.colors.primary.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 16),
+                  Icon(
+                    Icons.calendar_month_rounded,
+                    color: context.colors.primary,
+                    size: 16,
+                  ),
                   const SizedBox(width: 6),
-                  Text(monthName, style: GoogleFonts.outfit(
-                    fontSize: 13, color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  )),
+                  Text(
+                    monthName,
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      color: context.colors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary, size: 18),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: context.colors.primary,
+                    size: 18,
+                  ),
                 ],
               ),
             ),
@@ -146,7 +189,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     ).animate().fadeIn().slideX(begin: -0.05);
   }
 
-  void _showMonthPicker(BuildContext context, WidgetRef ref, String currentMonth) {
+  void _showMonthPicker(
+    BuildContext context,
+    WidgetRef ref,
+    String currentMonth,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -161,7 +208,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildSummaryBar(BuildContext context, WidgetRef ref, AsyncValue transactionsAsync, bool isDesktop, AsyncValue<int> totalBalanceAsync) {
+  Widget _buildSummaryBar(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue transactionsAsync,
+    bool isDesktop,
+    AsyncValue<int> totalBalanceAsync,
+  ) {
     return transactionsAsync.when(
       data: (transactions) {
         final income = transactions
@@ -177,7 +230,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             .where((t) => t.transactionType == AppConstants.typeAdjustmentSub)
             .fold(0, (acc, t) => acc + t.amount);
         final currencyFormat = NumberFormat.currency(
-          locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0,
+          locale: 'id_ID',
+          symbol: 'Rp ',
+          decimalDigits: 0,
         );
         // Net bulan ini: income - expense + adjustments
         final net = income - expense + adjAdd - adjSub;
@@ -190,27 +245,41 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               // Net balance highlight
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      (isPositive ? AppColors.income : AppColors.expense).withValues(alpha: 0.15),
-                      AppColors.card,
+                      (isPositive
+                              ? context.colors.income
+                              : context.colors.expense)
+                          .withValues(alpha: 0.15),
+                      context.colors.card,
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: (isPositive ? AppColors.income : AppColors.expense).withValues(alpha: 0.25),
+                    color:
+                        (isPositive
+                                ? context.colors.income
+                                : context.colors.expense)
+                            .withValues(alpha: 0.25),
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-                      color: isPositive ? AppColors.income : AppColors.expense,
+                      isPositive
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      color: isPositive
+                          ? context.colors.income
+                          : context.colors.expense,
                       size: 28,
                     ),
                     const SizedBox(width: 12),
@@ -218,18 +287,31 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Arus Kas Bulan Ini', style: GoogleFonts.outfit(
-                            fontSize: 12, color: AppColors.textSecondary,
-                          )),
-                          Text(currencyFormat.format(net), style: GoogleFonts.outfit(
-                            fontSize: 22, fontWeight: FontWeight.bold,
-                            color: isPositive ? AppColors.income : AppColors.expense,
-                          )),
+                          Text(
+                            'Arus Kas Bulan Ini',
+                            style: GoogleFonts.outfit(
+                              fontSize: 12,
+                              color: context.colors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            currencyFormat.format(net),
+                            style: GoogleFonts.outfit(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: isPositive
+                                  ? context.colors.income
+                                  : context.colors.expense,
+                            ),
+                          ),
                           Text(
                             adjAdd > 0 || adjSub > 0
                                 ? 'Termasuk penyesuaian: ${adjAdd > 0 ? '+${currencyFormat.format(adjAdd)}' : ''}${adjSub > 0 ? ' -${currencyFormat.format(adjSub)}' : ''}'
                                 : 'Pemasukan dikurangi pengeluaran',
-                            style: GoogleFonts.outfit(fontSize: 10, color: AppColors.textMuted),
+                            style: GoogleFonts.outfit(
+                              fontSize: 10,
+                              color: context.colors.textMuted,
+                            ),
                           ),
                         ],
                       ),
@@ -237,26 +319,45 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     // Total saldo aktual dari semua waktu
                     totalBalanceAsync.when(
                       data: (total) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
+                          color: context.colors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                          border: Border.all(
+                            color: context.colors.primary.withValues(
+                              alpha: 0.2,
+                            ),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('Total Saldo', style: GoogleFonts.outfit(
-                              fontSize: 10, color: AppColors.primary,
-                            )),
-                            Text(currencyFormat.format(total), style: GoogleFonts.outfit(
-                              fontSize: 14, fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            )),
+                            Text(
+                              'Total Saldo',
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                color: context.colors.primary,
+                              ),
+                            ),
+                            Text(
+                              currencyFormat.format(total),
+                              style: GoogleFonts.outfit(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: context.colors.primary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      loading: () => const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                      loading: () => const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                       error: (e, st) => const SizedBox.shrink(),
                     ),
                   ],
@@ -265,48 +366,60 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               // Income / Expense row
               Row(
                 children: [
-                  Expanded(child: _StatCard(
-                    label: 'Pemasukan',
-                    amount: currencyFormat.format(income),
-                    color: AppColors.income,
-                    icon: Icons.arrow_downward_rounded,
-                    onTap: () {
-                      final month = ref.read(currentMonthProvider);
-                      context.push('/transactions/${AppConstants.typeIncome}/$month');
-                    },
-                  )),
+                  Expanded(
+                    child: _StatCard(
+                      label: 'Pemasukan',
+                      amount: currencyFormat.format(income),
+                      color: context.colors.income,
+                      icon: Icons.arrow_downward_rounded,
+                      onTap: () {
+                        final month = ref.read(currentMonthProvider);
+                        context.push(
+                          '/transactions/${AppConstants.typeIncome}/$month',
+                        );
+                      },
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(child: _StatCard(
-                    label: 'Pengeluaran',
-                    amount: currencyFormat.format(expense),
-                    color: AppColors.expense,
-                    icon: Icons.arrow_upward_rounded,
-                    onTap: () {
-                      final month = ref.read(currentMonthProvider);
-                      context.push('/transactions/${AppConstants.typeExpense}/$month');
-                    },
-                  )),
+                  Expanded(
+                    child: _StatCard(
+                      label: 'Pengeluaran',
+                      amount: currencyFormat.format(expense),
+                      color: context.colors.expense,
+                      icon: Icons.arrow_upward_rounded,
+                      onTap: () {
+                        final month = ref.read(currentMonthProvider);
+                        context.push(
+                          '/transactions/${AppConstants.typeExpense}/$month',
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
             ],
           ),
         ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.05);
       },
-      loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+      loading: () => const SizedBox(
+        height: 100,
+        child: Center(child: CircularProgressIndicator()),
+      ),
       error: (e, st) => const SizedBox.shrink(),
     );
   }
+
   Widget _buildTransactionList(
     AsyncValue transactionsAsync,
     WidgetRef ref,
     String currentMonth,
     bool isDesktop,
-    List<WalletModel> wallets,
+    List<WalletEntity> wallets,
   ) {
     return transactionsAsync.when(
       data: (allTransactionsRaw) {
-        final List<TransactionModel> allTransactions = allTransactionsRaw;
-        
+        final List<TransactionEntity> allTransactions = allTransactionsRaw;
+
         if (allTransactions.isEmpty) {
           return const EmptyState(
             icon: Icons.history_rounded,
@@ -320,7 +433,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           final webDates = _buildOrderedDates(currentMonth);
 
           // Default selection on first load, or reset if month changed
-          if (!_isWebDateInitialized || (_webDateFilter != null && !webDates.contains(_webDateFilter))) {
+          if (!_isWebDateInitialized ||
+              (_webDateFilter != null && !webDates.contains(_webDateFilter))) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 setState(() {
@@ -330,12 +444,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               }
             });
           }
-          
+
           // Apply web filters
-          List<TransactionModel> webFiltered = allTransactions;
+          List<TransactionEntity> webFiltered = allTransactions;
           if (_webDateFilter != null) {
             webFiltered = webFiltered
-                .where((t) => DateFormat('yyyy-MM-dd').format(t.date) == _webDateFilter)
+                .where(
+                  (t) =>
+                      DateFormat('yyyy-MM-dd').format(t.date) == _webDateFilter,
+                )
                 .toList();
           }
           if (_webWalletFilter != null) {
@@ -346,9 +463,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_webDateFilter != null && webFiltered.isNotEmpty) 
+              if (_webDateFilter != null && webFiltered.isNotEmpty)
                 _buildDailySummary(webFiltered),
-              Expanded(child: _buildTransactionTable(webFiltered, ref, wallets)),
+              Expanded(
+                child: _buildTransactionTable(webFiltered, ref, wallets),
+              ),
             ],
           );
         }
@@ -358,14 +477,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
         // Reset if month changed
-        if (_selectedDateKey == null || !orderedDates.contains(_selectedDateKey)) {
+        if (_selectedDateKey == null ||
+            !orderedDates.contains(_selectedDateKey)) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) setState(() => _selectedDateKey = orderedDates.first);
           });
         }
 
         // Group by date
-        final Map<String, List<TransactionModel>> grouped = {};
+        final Map<String, List<TransactionEntity>> grouped = {};
         for (final t in allTransactions) {
           final key = DateFormat('yyyy-MM-dd').format(t.date);
           grouped.putIfAbsent(key, () => []).add(t);
@@ -376,10 +496,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
         // Only show chips for wallets that actually appear in this date's transactions
         final usedWalletIds = byDate.map((t) => t.paymentMethod).toSet();
-        final availableWallets = wallets.where((w) => usedWalletIds.contains(w.id)).toList();
+        final availableWallets = wallets
+            .where((w) => usedWalletIds.contains(w.id))
+            .toList();
 
         // Auto-reset filter if active wallet has no transactions on this date
-        if (_selectedWalletFilter != null && !usedWalletIds.contains(_selectedWalletFilter)) {
+        if (_selectedWalletFilter != null &&
+            !usedWalletIds.contains(_selectedWalletFilter)) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) setState(() => _selectedWalletFilter = null);
           });
@@ -387,7 +510,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
         final filteredList = _selectedWalletFilter == null
             ? byDate
-            : byDate.where((t) => t.paymentMethod == _selectedWalletFilter).toList();
+            : byDate
+                  .where((t) => t.paymentMethod == _selectedWalletFilter)
+                  .toList();
 
         return Column(
           children: [
@@ -404,7 +529,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   final isToday = dateKey == todayStr;
                   final parsed = DateFormat('yyyy-MM-dd').parse(dateKey);
                   final dayStr = DateFormat('dd').format(parsed);
-                  final monthStr = DateFormat('MMM').format(parsed).toUpperCase();
+                  final monthStr = DateFormat(
+                    'MMM',
+                  ).format(parsed).toUpperCase();
                   final hasTransactions = grouped.containsKey(dateKey);
 
                   return Padding(
@@ -415,23 +542,27 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         duration: const Duration(milliseconds: 200),
                         width: 54,
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary : AppColors.card,
+                          color: isSelected
+                              ? context.colors.primary
+                              : context.colors.card,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: isToday && !isSelected
-                                ? AppColors.primary.withValues(alpha: 0.5)
+                                ? context.colors.primary.withValues(alpha: 0.5)
                                 : isSelected
-                                    ? AppColors.primary
-                                    : Colors.white10,
+                                ? context.colors.primary
+                                : Colors.white10,
                             width: isToday && !isSelected ? 1.5 : 1,
                           ),
                           boxShadow: isSelected
                               ? [
                                   BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.35),
+                                    color: context.colors.primary.withValues(
+                                      alpha: 0.35,
+                                    ),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
-                                  )
+                                  ),
                                 ]
                               : [],
                         ),
@@ -443,7 +574,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               style: GoogleFonts.outfit(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: isSelected ? Colors.white : AppColors.textPrimary,
+                                color: isSelected
+                                    ? Colors.white
+                                    : context.colors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -452,16 +585,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               style: GoogleFonts.outfit(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: isSelected ? Colors.white70 : AppColors.textSecondary,
+                                color: isSelected
+                                    ? Colors.white70
+                                    : context.colors.textSecondary,
                               ),
                             ),
-                            if (hasTransactions) ...[  
+                            if (hasTransactions) ...[
                               const SizedBox(height: 4),
                               Container(
                                 width: 5,
                                 height: 5,
                                 decoration: BoxDecoration(
-                                  color: isSelected ? Colors.white : AppColors.primary,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : context.colors.primary,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -490,15 +627,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       onTap: () => setState(() => _selectedWalletFilter = null),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: _selectedWalletFilter == null
-                              ? AppColors.primary
-                              : AppColors.card,
+                              ? context.colors.primary
+                              : context.colors.card,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: _selectedWalletFilter == null
-                                ? AppColors.primary
+                                ? context.colors.primary
                                 : Colors.white12,
                           ),
                         ),
@@ -509,7 +649,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                             fontWeight: FontWeight.w600,
                             color: _selectedWalletFilter == null
                                 ? Colors.white
-                                : AppColors.textSecondary,
+                                : context.colors.textSecondary,
                           ),
                         ),
                       ),
@@ -517,19 +657,23 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ),
                   ...availableWallets.map((w) {
                     final isActive = _selectedWalletFilter == w.id;
-                    final color = PaymentUtils.getPaymentColor(w.bank);
+                    final color = PaymentUtils.getPaymentColor(w.bank, context);
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: GestureDetector(
-                        onTap: () => setState(() =>
-                            _selectedWalletFilter = isActive ? null : w.id),
+                        onTap: () => setState(
+                          () => _selectedWalletFilter = isActive ? null : w.id,
+                        ),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: isActive
                                 ? color.withValues(alpha: 0.2)
-                                : AppColors.card,
+                                : context.colors.card,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isActive ? color : Colors.white12,
@@ -539,7 +683,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              PaymentUtils.getPaymentIcon(w.bank, size: 13),
+                              PaymentUtils.getPaymentIcon(
+                                w.bank,
+                                context,
+                                size: 13,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 w.displayName,
@@ -550,7 +698,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                       : FontWeight.normal,
                                   color: isActive
                                       ? color
-                                      : AppColors.textSecondary,
+                                      : context.colors.textSecondary,
                                 ),
                               ),
                             ],
@@ -573,23 +721,29 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               child: filteredList.isEmpty
                   ? _buildEmptyDate()
                   : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                       itemCount: filteredList.length,
                       itemBuilder: (context, index) {
                         final transaction = filteredList[index];
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: TransactionCard(
-                            transaction: transaction,
-                            onDelete: () async {
-                              await ref
-                                  .read(transactionActionProvider.notifier)
-                                  .deleteTransaction(transaction.id);
-                              ref.invalidate(latestBalanceProvider);
-                              ref.invalidate(walletBalancesProvider);
-                            },
-                          ),
-                        ).animate().fadeIn(delay: (index * 50).ms).slideY(begin: 0.1);
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: TransactionCard(
+                                transaction: transaction,
+                                onDelete: () async {
+                                  await ref
+                                      .read(transactionActionProvider.notifier)
+                                      .deleteTransaction(transaction.id);
+                                  ref.invalidate(latestBalanceProvider);
+                                  ref.invalidate(walletBalancesProvider);
+                                },
+                              ),
+                            )
+                            .animate()
+                            .fadeIn(delay: (index * 50).ms)
+                            .slideY(begin: 0.1);
                       },
                     ),
             ),
@@ -601,7 +755,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildDailySummary(List<TransactionModel> transactions) {
+  Widget _buildDailySummary(List<TransactionEntity> transactions) {
     final dailyIncome = transactions
         .where((t) => t.transactionType == AppConstants.typeIncome)
         .fold(0, (sum, t) => sum + t.amount);
@@ -611,69 +765,119 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
     if (dailyIncome == 0 && dailyExpense == 0) return const SizedBox.shrink();
 
-    final format = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final format = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: [
-          if (dailyIncome > 0) Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.income.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.income.withValues(alpha: 0.2)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.arrow_downward_rounded, color: AppColors.income, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Pemasukan Harian', style: GoogleFonts.outfit(color: AppColors.income.withValues(alpha: 0.8), fontSize: 10)),
-                        Text(format.format(dailyIncome), 
-                          style: GoogleFonts.outfit(color: AppColors.income, fontSize: 14, fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
+          if (dailyIncome > 0)
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: context.colors.income.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: context.colors.income.withValues(alpha: 0.2),
                   ),
-                ],
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.arrow_downward_rounded,
+                      color: context.colors.income,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Pemasukan Harian',
+                            style: GoogleFonts.outfit(
+                              color: context.colors.income.withValues(
+                                alpha: 0.8,
+                              ),
+                              fontSize: 10,
+                            ),
+                          ),
+                          Text(
+                            format.format(dailyIncome),
+                            style: GoogleFonts.outfit(
+                              color: context.colors.income,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           if (dailyIncome > 0 && dailyExpense > 0) const SizedBox(width: 12),
-          if (dailyExpense > 0) Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.expense.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.expense.withValues(alpha: 0.2)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.arrow_upward_rounded, color: AppColors.expense, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Pengeluaran Harian', style: GoogleFonts.outfit(color: AppColors.expense.withValues(alpha: 0.8), fontSize: 10)),
-                        Text(format.format(dailyExpense), 
-                          style: GoogleFonts.outfit(color: AppColors.expense, fontSize: 14, fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
+          if (dailyExpense > 0)
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: context.colors.expense.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: context.colors.expense.withValues(alpha: 0.2),
                   ),
-                ],
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.arrow_upward_rounded,
+                      color: context.colors.expense,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Pengeluaran Harian',
+                            style: GoogleFonts.outfit(
+                              color: context.colors.expense.withValues(
+                                alpha: 0.8,
+                              ),
+                              fontSize: 10,
+                            ),
+                          ),
+                          Text(
+                            format.format(dailyExpense),
+                            style: GoogleFonts.outfit(
+                              color: context.colors.expense,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     ).animate().fadeIn().slideY(begin: 0.05);
@@ -689,13 +893,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
+                color: context.colors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.event_note_rounded,
                 size: 48,
-                color: AppColors.primary.withValues(alpha: 0.4),
+                color: context.colors.primary.withValues(alpha: 0.4),
               ),
             ),
             const SizedBox(height: 20),
@@ -704,7 +908,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               style: GoogleFonts.outfit(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -713,7 +917,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
                 fontSize: 13,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
             ),
           ],
@@ -722,7 +926,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildTransactionTable(List<TransactionModel> transactions, WidgetRef ref, List<WalletModel> wallets) {
+  Widget _buildTransactionTable(
+    List<TransactionEntity> transactions,
+    WidgetRef ref,
+    List<WalletEntity> wallets,
+  ) {
     final currencyFormat = NumberFormat.currency(
       locale: 'id_ID',
       symbol: 'Rp ',
@@ -739,7 +947,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           horizontalMargin: 24,
           columnSpacing: 24,
           headingTextStyle: GoogleFonts.outfit(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
             fontWeight: FontWeight.bold,
             fontSize: 12,
             letterSpacing: 1,
@@ -758,13 +966,31 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             final t = entry.value;
             final isIncome = t.transactionType == AppConstants.typeIncome;
             final isTransfer = t.transactionType == AppConstants.typeTransfer;
-            final isAdjAdd = t.transactionType == AppConstants.typeAdjustmentAdd;
-            final isAdjSub = t.transactionType == AppConstants.typeAdjustmentSub;
+            final isAdjAdd =
+                t.transactionType == AppConstants.typeAdjustmentAdd;
+            final isAdjSub =
+                t.transactionType == AppConstants.typeAdjustmentSub;
             final isAdjustment = isAdjAdd || isAdjSub;
-            
-            final wallet = wallets.firstWhere((w) => w.id == t.paymentMethod, orElse: () => WalletModel(id: t.paymentMethod, bank: t.paymentMethod, name: '', createdAt: DateTime.now()));
-            final destinationWallet = t.destinationWallet != null 
-                ? wallets.firstWhere((w) => w.id == t.destinationWallet, orElse: () => WalletModel(id: t.destinationWallet!, bank: t.destinationWallet!, name: '', createdAt: DateTime.now()))
+
+            final wallet = wallets.firstWhere(
+              (w) => w.id == t.paymentMethod,
+              orElse: () => WalletEntity(
+                id: t.paymentMethod,
+                bank: t.paymentMethod,
+                name: '',
+                createdAt: DateTime.now(),
+              ),
+            );
+            final destinationWallet = t.destinationWallet != null
+                ? wallets.firstWhere(
+                    (w) => w.id == t.destinationWallet,
+                    orElse: () => WalletEntity(
+                      id: t.destinationWallet!,
+                      bank: t.destinationWallet!,
+                      name: '',
+                      createdAt: DateTime.now(),
+                    ),
+                  )
                 : null;
 
             return DataRow(
@@ -772,14 +998,23 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 DataCell(Text(DateFormat('dd MMM yyyy').format(t.date))),
                 DataCell(Text(t.person.isEmpty ? '-' : t.person)),
                 DataCell(_buildCategoryBadge(t.expenseType, t.transactionType)),
-                DataCell(Text(isTransfer ? '${wallet.displayName} → ${destinationWallet?.displayName ?? t.destinationWallet}' : wallet.displayName)),
+                DataCell(
+                  Text(
+                    isTransfer
+                        ? '${wallet.displayName} → ${destinationWallet?.displayName ?? t.destinationWallet}'
+                        : wallet.displayName,
+                  ),
+                ),
                 DataCell(
                   SizedBox(
                     width: 150,
                     child: Text(
                       t.note.isEmpty ? '-' : t.note,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: context.colors.textMuted,
+                      ),
                     ),
                   ),
                 ),
@@ -788,25 +1023,33 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     '${(isTransfer || isAdjustment) ? '' : (isIncome ? '+' : '-')}${isAdjAdd ? '+' : (isAdjSub ? '-' : '')}${currencyFormat.format(t.amount)}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isTransfer 
-                          ? AppColors.primary 
-                          : (isAdjustment 
-                              ? Colors.grey 
-                              : (isIncome ? AppColors.income : AppColors.expense)),
+                      color: isTransfer
+                          ? context.colors.primary
+                          : (isAdjustment
+                                ? Colors.grey
+                                : (isIncome
+                                      ? context.colors.income
+                                      : context.colors.expense)),
                     ),
                   ),
                 ),
                 DataCell(
                   Text(
                     currencyFormat.format(t.balanceAfter),
-                    style: const TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: context.colors.textSecondary),
                   ),
                 ),
                 DataCell(
                   IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, color: AppColors.expense, size: 20),
+                    icon: Icon(
+                      Icons.delete_outline_rounded,
+                      color: context.colors.expense,
+                      size: 20,
+                    ),
                     onPressed: () async {
-                      await ref.read(transactionActionProvider.notifier).deleteTransaction(t.id);
+                      await ref
+                          .read(transactionActionProvider.notifier)
+                          .deleteTransaction(t.id);
                       ref.invalidate(latestBalanceProvider);
                       ref.invalidate(walletBalancesProvider);
                     },
@@ -822,22 +1065,23 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   Widget _buildCategoryBadge(String type, String transactionType) {
     if (transactionType == AppConstants.typeIncome) {
-      return const _Badge(label: 'Income', color: AppColors.income);
+      return _Badge(label: 'Income', color: context.colors.income);
     }
     if (transactionType == AppConstants.typeTransfer) {
-      return const _Badge(label: 'Transfer', color: AppColors.primary);
+      return _Badge(label: 'Transfer', color: context.colors.primary);
     }
-    if (transactionType == AppConstants.typeAdjustmentAdd || transactionType == AppConstants.typeAdjustmentSub) {
+    if (transactionType == AppConstants.typeAdjustmentAdd ||
+        transactionType == AppConstants.typeAdjustmentSub) {
       return const _Badge(label: 'Penyesuaian', color: Colors.grey);
     }
-    
+
     switch (type) {
       case AppConstants.expenseLarge:
-        return _Badge(label: 'Large Exp', color: AppColors.expense);
+        return _Badge(label: 'Large Exp', color: context.colors.expense);
       case AppConstants.expenseSmall:
-        return _Badge(label: 'Small Exp', color: AppColors.primary);
+        return _Badge(label: 'Small Exp', color: context.colors.primary);
       default:
-        return _Badge(label: 'General', color: AppColors.textMuted);
+        return _Badge(label: 'General', color: context.colors.textMuted);
     }
   }
 
@@ -846,17 +1090,22 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final webDates = _buildOrderedDates(currentMonth);
     final wallets = ref.watch(walletsStreamProvider).value ?? [];
-    
+
     // Derive available wallets from current transactions (all in this month)
-    final transactionsAsync = ref.watch(transactionsStreamProvider(currentMonth));
-    final List<TransactionModel> allTransactions = transactionsAsync.value ?? [];
+    final transactionsAsync = ref.watch(
+      transactionsStreamProvider(currentMonth),
+    );
+    final List<TransactionEntity> allTransactions =
+        transactionsAsync.value ?? [];
     final usedWalletIds = allTransactions.map((t) => t.paymentMethod).toSet();
-    final availableWebWallets = wallets.where((w) => usedWalletIds.contains(w.id)).toList();
+    final availableWebWallets = wallets
+        .where((w) => usedWalletIds.contains(w.id))
+        .toList();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white10),
       ),
@@ -865,25 +1114,51 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.filter_list_rounded, color: AppColors.primary, size: 16),
+            Icon(
+              Icons.filter_list_rounded,
+              color: context.colors.primary,
+              size: 16,
+            ),
             const SizedBox(width: 12),
             // Date Filter
             _buildWebDateChip('Semua', null),
             const SizedBox(width: 8),
             ...webDates.map((d) {
-              final label = d == todayStr ? 'Today' : DateFormat('dd MMM').format(DateFormat('yyyy-MM-dd').parse(d));
+              final label = d == todayStr
+                  ? 'Today'
+                  : DateFormat(
+                      'dd MMM',
+                    ).format(DateFormat('yyyy-MM-dd').parse(d));
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: _buildWebDateChip(label, d),
               );
             }),
-            Container(height: 20, width: 1, color: Colors.white10, margin: const EdgeInsets.symmetric(horizontal: 8)),
+            Container(
+              height: 20,
+              width: 1,
+              color: Colors.white10,
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+            ),
             // Wallet Filter
-            _buildWebWalletChip('Semua', null, Icons.all_inclusive_rounded, AppColors.primary),
-            ...availableWebWallets.map((w) => Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: _buildWebWalletChip(w.displayName, w.id, null, PaymentUtils.getPaymentColor(w.bank), wallet: w),
-            )),
+            _buildWebWalletChip(
+              'Semua',
+              null,
+              Icons.all_inclusive_rounded,
+              context.colors.primary,
+            ),
+            ...availableWebWallets.map(
+              (w) => Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: _buildWebWalletChip(
+                  w.displayName,
+                  w.id,
+                  null,
+                  PaymentUtils.getPaymentColor(w.bank, context),
+                  wallet: w,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -898,19 +1173,35 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.15) : Colors.transparent,
+          color: isSelected
+              ? context.colors.primary.withValues(alpha: 0.15)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isSelected ? AppColors.primary : Colors.transparent),
+          border: Border.all(
+            color: isSelected ? context.colors.primary : Colors.transparent,
+          ),
         ),
-        child: Text(label, style: GoogleFonts.outfit(
-          fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? AppColors.primary : AppColors.textSecondary,
-        )),
+        child: Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected
+                ? context.colors.primary
+                : context.colors.textSecondary,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildWebWalletChip(String label, String? value, IconData? icon, Color color, {WalletModel? wallet}) {
+  Widget _buildWebWalletChip(
+    String label,
+    String? value,
+    IconData? icon,
+    Color color, {
+    WalletEntity? wallet,
+  }) {
     final isSelected = _webWalletFilter == value;
     return GestureDetector(
       onTap: () => setState(() => _webWalletFilter = value),
@@ -918,22 +1209,38 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+          color: isSelected
+              ? color.withValues(alpha: 0.15)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: isSelected ? color : Colors.transparent),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) Icon(icon, color: isSelected ? color : AppColors.textSecondary, size: 14),
-            if (wallet != null) Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: PaymentUtils.getPaymentIcon(wallet.bank, size: 14),
+            if (icon != null)
+              Icon(
+                icon,
+                color: isSelected ? color : context.colors.textSecondary,
+                size: 14,
+              ),
+            if (wallet != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: PaymentUtils.getPaymentIcon(
+                  wallet.bank,
+                  context,
+                  size: 14,
+                ),
+              ),
+            Text(
+              label,
+              style: GoogleFonts.outfit(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? color : context.colors.textSecondary,
+              ),
             ),
-            Text(label, style: GoogleFonts.outfit(
-              fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? color : AppColors.textSecondary,
-            )),
           ],
         ),
       ),
@@ -998,7 +1305,7 @@ class _MonthPickerModalState extends State<_MonthPickerModal> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
@@ -1038,9 +1345,12 @@ class _MonthPickerModalState extends State<_MonthPickerModal> {
             itemCount: 12,
             itemBuilder: (context, index) {
               final month = index + 1;
-              final monthStr = '$selectedYear-${month.toString().padLeft(2, '0')}';
+              final monthStr =
+                  '$selectedYear-${month.toString().padLeft(2, '0')}';
               final isSelected = monthStr == selectedMonth;
-              final displayName = DateFormat('MMMM').format(DateTime(selectedYear, month));
+              final displayName = DateFormat(
+                'MMMM',
+              ).format(DateTime(selectedYear, month));
 
               return InkWell(
                 onTap: () => widget.onSelected(monthStr),
@@ -1048,19 +1358,27 @@ class _MonthPickerModalState extends State<_MonthPickerModal> {
                 child: Container(
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    gradient: isSelected ? AppColors.primaryGradient : null,
-                    color: isSelected ? null : AppColors.card,
+                    gradient: isSelected
+                        ? context.colors.primaryGradient
+                        : null,
+                    color: isSelected ? null : context.colors.card,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected ? AppColors.primaryLight.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05),
+                      color: isSelected
+                          ? context.colors.primaryLight.withValues(alpha: 0.3)
+                          : Colors.white.withValues(alpha: 0.05),
                     ),
                   ),
                   child: Text(
                     displayName,
                     style: GoogleFonts.outfit(
                       fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: isSelected
+                          ? Colors.white
+                          : context.colors.textSecondary,
                     ),
                   ),
                 ),
@@ -1099,40 +1417,49 @@ class _StatCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: context.colors.card,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: color.withValues(alpha: 0.15)),
           ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 16),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: GoogleFonts.outfit(
-                  fontSize: 11, color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                )),
-                const SizedBox(height: 2),
-                Text(amount, style: GoogleFonts.outfit(
-                  fontSize: 13, fontWeight: FontWeight.bold, color: color,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                overflow: TextOverflow.ellipsis),
-              ],
-            ),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        color: context.colors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      amount,
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
+        ),
       ),
     );
   }

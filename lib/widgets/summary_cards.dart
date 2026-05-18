@@ -3,15 +3,12 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fin_track/core/constants.dart';
 import 'package:fin_track/core/theme.dart';
-import 'package:fin_track/models/transaction_model.dart';
+import 'package:fin_track/features/transaction/domain/entities/transaction_entity.dart';
 
 class SummaryCardsWidget extends StatelessWidget {
-  final List<TransactionModel> transactions;
+  final List<TransactionEntity> transactions;
 
-  const SummaryCardsWidget({
-    super.key,
-    required this.transactions,
-  });
+  const SummaryCardsWidget({super.key, required this.transactions});
 
   @override
   Widget build(BuildContext context) {
@@ -28,19 +25,23 @@ class SummaryCardsWidget extends StatelessWidget {
           child: SummaryCard(
             label: 'Income',
             amount: income,
-            color: AppColors.income,
+            color: context.colors.income,
             icon: Icons.arrow_downward_rounded,
-            onTap: () => context.push('/transactions/${AppConstants.typeIncome}/${DateFormat('yyyy-MM').format(DateTime.now())}'),
+            onTap: () => context.push(
+              '/transactions/${AppConstants.typeIncome}/${DateFormat('yyyy-MM').format(DateTime.now())}',
+            ),
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16),
         Expanded(
           child: SummaryCard(
             label: 'Expense',
             amount: expense,
-            color: AppColors.expense,
+            color: context.colors.expense,
             icon: Icons.arrow_upward_rounded,
-            onTap: () => context.push('/transactions/${AppConstants.typeExpense}/${DateFormat('yyyy-MM').format(DateTime.now())}'),
+            onTap: () => context.push(
+              '/transactions/${AppConstants.typeExpense}/${DateFormat('yyyy-MM').format(DateTime.now())}',
+            ),
           ),
         ),
       ],
@@ -80,49 +81,49 @@ class SummaryCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(20.0),
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: context.colors.card,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: color.withValues(alpha: 0.1)),
           ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 14, color: color),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, size: 14, color: color),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: context.colors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
+              const SizedBox(height: 12),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  currencyFormat.format(amount),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              currencyFormat.format(amount),
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
+        ),
       ),
     );
   }
